@@ -18,7 +18,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/60 z-10" />
         <div
           className="absolute inset-0 bg-cover bg-center z-0"
-          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1505236858219-8359eb29e329?q=80&w=1262&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)' }}
+          style={{ backgroundImage: 'url("/slider-01.jpg")' }}
         />
 
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">

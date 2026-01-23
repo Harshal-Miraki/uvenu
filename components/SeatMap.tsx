@@ -14,9 +14,9 @@ export const DEFAULT_TIER_CONFIG: TierConfig[] = [
 ];
 
 // Get current tier pricing from storage (synced globally)
-export function getTierPricing(): TierConfig[] {
+export async function getTierPricing(): Promise<TierConfig[]> {
     if (typeof window === 'undefined') return DEFAULT_TIER_CONFIG;
-    return storage.getTierPricing();
+    return await storage.getTierPricing();
 }
 
 interface SeatMapProps {

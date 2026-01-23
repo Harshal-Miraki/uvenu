@@ -23,14 +23,11 @@ export default function EventDetailsPage() {
     // Load tier pricing from storage and listen for changes
     useEffect(() => {
         // Initial load
-        setTierConfig(getTierPricing());
-
-        // Listen for localStorage changes from other tabs/pages
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === 'uvenu_tier_pricing') {
-                setTierConfig(getTierPricing());
-            }
+        const loadPricing = async () => {
+            const pricing = await getTierPricing();
+            setTierConfig(pricing);
         };
+        loadPricing();
 
         // Listen for custom event from same-page updates (admin panel)
         const handlePricingChanged = (e: Event) => {
@@ -38,11 +35,9 @@ export default function EventDetailsPage() {
             setTierConfig(customEvent.detail);
         };
 
-        window.addEventListener('storage', handleStorageChange);
         window.addEventListener('tierPricingChanged', handlePricingChanged);
 
         return () => {
-            window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('tierPricingChanged', handlePricingChanged);
         };
     }, []);

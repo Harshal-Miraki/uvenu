@@ -15,7 +15,7 @@ export default function ManageLayoutPage() {
         setSelectedLayouts(prev => ({ ...prev, [eventId]: layout }));
     };
 
-    const handleSave = (eventId: string) => {
+    const handleSave = async (eventId: string) => {
         const event = events.find(e => e.id === eventId);
         if (!event) return;
 
@@ -28,10 +28,8 @@ export default function ManageLayoutPage() {
             seatMap: undefined // Clear seat map to regenerate with new layout
         };
 
-        const allEvents = storage.getEvents();
-        const updatedEvents = allEvents.map(e => e.id === eventId ? updatedEvent : e);
-        storage.saveEvents(updatedEvents);
-        refreshData();
+        await storage.saveEvent(updatedEvent);
+        await refreshData();
 
         // Clear selection after save
         setSelectedLayouts(prev => {

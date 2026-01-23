@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
                     className="inline-flex items-center text-gray-400 hover:text-white mb-6 transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Customer Login
+                    UVENUE Login
                 </Link>
 
                 {/* Logo */}

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { role, isLoggedIn, logout, cart } = useStore();
+    const { role, isLoggedIn, logout, cart, currentUser } = useStore();
 
     // Calculate cart items - handle both formats
     const totalItems = cart.reduce((acc, item) => {
@@ -88,6 +88,15 @@ export function Navbar() {
                             >
                                 Layout
                             </Link>
+                            <Link
+                                href="/admin/bookings"
+                                className={cn(
+                                    "text-sm font-medium transition-colors hover:text-gold-600",
+                                    pathname === "/admin/bookings" ? "text-gold-600" : "text-gray-600"
+                                )}
+                            >
+                                Bookings
+                            </Link>
                         </div>
                     )}
                 </div>
@@ -100,7 +109,9 @@ export function Navbar() {
                                 <div className="h-8 w-8 rounded-full bg-gold-500/20 flex items-center justify-center text-gold-600">
                                     <User className="h-4 w-4" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-700 capitalize">{role}</span>
+                                <span className="text-sm font-medium text-gray-700">
+                                    {role === 'admin' ? 'Admin' : (currentUser?.name || 'Customer')}
+                                </span>
                             </div>
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4 mr-2" />

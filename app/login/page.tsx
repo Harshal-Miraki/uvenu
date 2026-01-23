@@ -27,13 +27,22 @@ export default function LoginPage() {
 
         setIsLoading(true);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Validate user against Firebase
+        const result = await storage.validateUser(email, password);
 
-        // Mock validation - any email/password works for demo
-        storage.setAuth('customer');
         setIsLoading(false);
-        router.push('/events');
+
+        if (!result.success) {
+            setError(result.error || "Login failed");
+            return;
+        }
+
+        // Store auth and user data
+        if (result.user) {
+            storage.setAuth('customer');
+            storage.setCurrentUser(result.user);
+            router.push('/events');
+        }
     };
 
     return (
@@ -49,7 +58,7 @@ export default function LoginPage() {
 
                 <Card className="bg-white border-gray-200 shadow-xl">
                     <CardHeader className="text-center pb-2">
-                        <CardTitle className="text-xl text-gray-900">Customer Login</CardTitle>
+                        <CardTitle className="text-xl text-gray-900">UVENU Login</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                         <form onSubmit={handleLogin} className="space-y-4">
@@ -106,7 +115,10 @@ export default function LoginPage() {
                         </div>
 
                         <p className="text-xs text-center text-gray-400 mt-4">
-                            Demo: Enter any email/password to continue
+                            Don't have an account?{' '}
+                            <Link href="/register" className="text-gold-600 hover:underline">
+                                Register here
+                            </Link>
                         </p>
                     </CardContent>
                 </Card>

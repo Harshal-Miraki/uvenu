@@ -18,7 +18,11 @@ export default function CheckoutPage() {
 
     // Load tier pricing from storage on mount
     useEffect(() => {
-        setTierConfig(getTierPricing());
+        const loadPricing = async () => {
+            const pricing = await getTierPricing();
+            setTierConfig(pricing);
+        };
+        loadPricing();
     }, []);
 
     // Calculate subtotal - handle both legacy and new format
@@ -34,7 +38,7 @@ export default function CheckoutPage() {
     }, 0);
 
     const serviceFee = subtotal * 0.05; // 5% mock fee
-    const total = subtotal + serviceFee;
+    const total = subtotal;
 
     const handleCheckout = async () => {
         setIsProcessing(true);
@@ -165,10 +169,10 @@ export default function CheckoutPage() {
                                         <span>Subtotal</span>
                                         <span>{subtotal.toFixed(2)} QAR</span>
                                     </div>
-                                    <div className="flex justify-between text-gray-500">
+                                    {/* <div className="flex justify-between text-gray-500">
                                         <span>Service Fee (5%)</span>
                                         <span>{serviceFee.toFixed(2)} QAR</span>
-                                    </div>
+                                    </div> */}
                                     <div className="border-t border-gray-200 pt-3 flex justify-between items-end">
                                         <span className="text-gray-900 font-bold">Total</span>
                                         <span className="text-2xl font-bold text-gold-600">{total.toFixed(2)} <span className="text-sm font-normal text-gray-500">QAR</span></span>

@@ -1,13 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Event as EventType, UserRole, CartItem, Booking, SeatCategory } from '@/types';
+import { Event as EventType, UserRole, CartItem, Booking, SeatCategory, User } from '@/types';
 import { storage } from '@/lib/storage';
 
 interface StoreType {
     events: EventType[];
     role: UserRole;
     isLoggedIn: boolean;
+    currentUser: User | null;
     cart: CartItem[];
     setRole: (role: UserRole) => void;
     login: (role: UserRole) => void;
@@ -25,18 +26,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const [events, setEvents] = useState<EventType[]>([]);
     const [role, setRoleState] = useState<UserRole>('customer');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentUser, setCurrentUserState] = useState<User | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
-        // Initialize data
-        setEvents(storage.getEvents());
 
-        // Load auth state
+        // Initialize Firestore data
+        const initData = async () => {
+            const { initializeFirestore } = await import('@/lib/storage');
+            await initializeFirestore();
+
+            // Load initial events
+            const initialEvents = await storage.getEvents();
+            setEvents(initialEvents);
+        };
+
+        initData();
+
+        // Load auth state (from localStorage)
         const auth = storage.getAuth();
         setRoleState(auth.role);
         setIsLoggedIn(auth.isLoggedIn);
+
+        // Load current user
+        const user = storage.getCurrentUser();
+        setCurrentUserState(user);
 
         // Load persisted cart if any
         const savedCart = localStorage.getItem('uvenu_cart');
@@ -49,12 +65,30 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             setIsLoggedIn(customEvent.detail.isLoggedIn);
         };
 
+        // Listen for user changes
+        const handleUserChange = (evt: globalThis.Event) => {
+            const customEvent = evt as CustomEvent<User | null>;
+            setCurrentUserState(customEvent.detail);
+        };
+
         window.addEventListener('authChanged', handleAuthChange);
-        return () => window.removeEventListener('authChanged', handleAuthChange);
+        window.addEventListener('userChanged', handleUserChange);
+
+        // Subscribe to real-time events updates
+        const unsubscribeEvents = storage.onEventsChange((updatedEvents) => {
+            setEvents(updatedEvents);
+        });
+
+        return () => {
+            window.removeEventListener('authChanged', handleAuthChange);
+            window.removeEventListener('userChanged', handleUserChange);
+            unsubscribeEvents();
+        };
     }, []);
 
-    const refreshData = () => {
-        setEvents(storage.getEvents());
+    const refreshData = async () => {
+        const updatedEvents = await storage.getEvents();
+        setEvents(updatedEvents);
     };
 
     const updateCart = (newCart: CartItem[]) => {
@@ -126,7 +160,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         updateCart([]);
     };
 
-    const checkout = () => {
+    const checkout = async () => {
         // Calculate total supporting both formats
         const totalAmount = cart.reduce((sum, item) => {
             if (item.seats && item.totalPrice !== undefined) {
@@ -137,19 +171,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return sum;
         }, 0);
 
-        // Create bookings from cart
+        // Create bookings from cart with user information
         const booking: Booking = {
             id: crypto.randomUUID(),
-            customerName: "Guest User",
+            customerName: currentUser?.name || "Guest User",
+            userId: currentUser?.id,
+            userName: currentUser?.name,
+            userEmail: currentUser?.email,
             items: cart,
             totalAmount,
             bookingDate: new Date().toISOString(),
             status: 'confirmed'
         };
 
-        storage.saveBooking(booking);
+        await storage.saveBooking(booking);
         clearCart();
-        refreshData();
+        await refreshData();
     };
 
     if (!isClient) return null; // Avoid hydration mismatch
@@ -159,6 +196,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             events,
             role,
             isLoggedIn,
+            currentUser,
             setRole,
             login,
             logout,

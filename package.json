@@ -12,6 +12,8 @@
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.8.0",
+    "google-translate-api-x": "^10.7.2",
     "lucide-react": "^0.562.0",
     "next": "16.1.4",
     "react": "19.2.3",

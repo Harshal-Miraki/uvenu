@@ -19,7 +19,11 @@ export default function ManagePricingPage() {
 
     // Load tier pricing from storage
     useEffect(() => {
-        setTierPricing(storage.getTierPricing());
+        const loadPricing = async () => {
+            const pricing = await storage.getTierPricing();
+            setTierPricing(pricing);
+        };
+        loadPricing();
     }, []);
 
     // Update individual tier price
@@ -40,20 +44,20 @@ export default function ManagePricingPage() {
     };
 
     // Save all pricing changes
-    const savePricing = () => {
-        storage.saveTierPricing(tierPricing);
+    const savePricing = async () => {
+        await storage.saveTierPricing(tierPricing);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
 
     // Event discount update
-    const handleEventUpdate = (updates: Partial<Event>) => {
+    const handleEventUpdate = async (updates: Partial<Event>) => {
         if (!selectedEvent) return;
         const updatedEvents = events.map(e =>
             e.id === selectedEvent.id ? { ...e, ...updates } : e
         );
-        storage.saveEvents(updatedEvents);
-        refreshData();
+        await storage.saveEvents(updatedEvents);
+        await refreshData();
     };
 
     // Calculate discounted price
@@ -146,8 +150,8 @@ export default function ManagePricingPage() {
                                         key={event.id}
                                         onClick={() => setSelectedEventId(event.id)}
                                         className={`p-3 rounded cursor-pointer transition-colors ${selectedEventId === event.id
-                                                ? 'bg-gold-500 text-black font-bold'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-gold-500 text-black font-bold'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         {event.title}
@@ -170,8 +174,8 @@ export default function ManagePricingPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div
                                             className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedEvent.isEarlyBird
-                                                    ? 'border-gold-500 bg-gold-500/10'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-gold-500 bg-gold-500/10'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                             onClick={() => handleEventUpdate({
                                                 isEarlyBird: !selectedEvent.isEarlyBird,
@@ -183,8 +187,8 @@ export default function ManagePricingPage() {
                                         </div>
                                         <div
                                             className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedEvent.isLastMinute
-                                                    ? 'border-red-500 bg-red-500/10'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                ? 'border-red-500 bg-red-500/10'
+                                                : 'border-gray-200 hover:border-gray-300'
                                                 }`}
                                             onClick={() => handleEventUpdate({
                                                 isLastMinute: !selectedEvent.isLastMinute,

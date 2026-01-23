@@ -1,5 +1,14 @@
 export type UserRole = 'admin' | 'customer';
 
+export interface User {
+  id: string;
+  email: string;
+  password: string;
+  name: string;
+  phone?: string;
+  createdAt: string;
+}
+
 export type SeatCategory = 'VIP' | 'Premium' | 'Standard';
 
 // New: 4-tier pricing system for seat map
@@ -75,6 +84,9 @@ export interface CartItem {
 export interface Booking {
     id: string;
     customerName: string; // For MVP, just a mock
+    userId?: string; // User ID who made the booking
+    userName?: string; // User name for display
+    userEmail?: string; // User email
     items: CartItem[];
     totalAmount: number;
     bookingDate: string;

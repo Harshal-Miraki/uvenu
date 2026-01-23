@@ -1,17 +1,34 @@
-import { Event, Booking, PricingRule, SeatCategory, TierConfig, SeatTier, UserRole } from "@/types";
+import { 
+  collection, 
+  doc, 
+  getDocs, 
+  getDoc,
+  setDoc, 
+  addDoc, 
+  updateDoc, 
+  query,
+  onSnapshot,
+  writeBatch,
+  where
+} from "firebase/firestore";
+import { db } from "./firebase";
+import { Event, Booking, TierConfig, SeatTier, UserRole, User } from "@/types";
 
-const EVENTS_KEY = "uvenu_events";
-const BOOKINGS_KEY = "uvenu_bookings";
-const PRICING_KEY = "uvenu_pricing";
-const TIER_PRICING_KEY = "uvenu_tier_pricing";
-const AUTH_KEY = "uvenu_auth";
+// Collection names
+const EVENTS_COLLECTION = "events";
+const BOOKINGS_COLLECTION = "bookings";
+const USERS_COLLECTION = "users";
+const CONFIG_COLLECTION = "config";
+const TIER_PRICING_DOC = "tierPricing";
+const AUTH_KEY = "uvenu_auth"; // Keep auth in localStorage for simplicity
+const CURRENT_USER_KEY = "uvenu_current_user"; // Store current user data
 
 // Default tier pricing configuration
 const DEFAULT_TIER_PRICING: TierConfig[] = [
-    { id: 'platinum', name: 'Platinum', price: 800, color: '#EF4444' },  // Red
-    { id: 'gold', name: 'Gold', price: 750, color: '#A855F7' },         // Purple
-    { id: 'silver', name: 'Silver', price: 615, color: '#3B82F6' },     // Blue
-    { id: 'bronze', name: 'Bronze', price: 525, color: '#06B6D4' },     // Cyan
+  { id: 'platinum', name: 'Platinum', price: 800, color: '#EF4444' },  // Red
+  { id: 'gold', name: 'Gold', price: 750, color: '#A855F7' },         // Purple
+  { id: 'silver', name: 'Silver', price: 615, color: '#3B82F6' },     // Blue
+  { id: 'bronze', name: 'Bronze', price: 525, color: '#06B6D4' },     // Cyan
 ];
 
 const INITIAL_EVENTS: Event[] = [
@@ -81,78 +98,201 @@ const INITIAL_EVENTS: Event[] = [
   }
 ];
 
+// Initialize Firestore with default data
+export const initializeFirestore = async () => {
+  try {
+    // Check if events exist
+    const eventsSnapshot = await getDocs(collection(db, EVENTS_COLLECTION));
+    if (eventsSnapshot.empty) {
+      // Add initial events
+      const batch = writeBatch(db);
+      INITIAL_EVENTS.forEach(event => {
+        const eventRef = doc(db, EVENTS_COLLECTION, event.id);
+        batch.set(eventRef, event);
+      });
+      await batch.commit();
+      console.log("Initialized events in Firestore");
+    }
+
+    // Check if tier pricing exists
+    const tierPricingRef = doc(db, CONFIG_COLLECTION, TIER_PRICING_DOC);
+    const tierPricingSnap = await getDoc(tierPricingRef);
+    if (!tierPricingSnap.exists()) {
+      await setDoc(tierPricingRef, { tiers: DEFAULT_TIER_PRICING });
+      console.log("Initialized tier pricing in Firestore");
+    }
+  } catch (error) {
+    console.error("Error initializing Firestore:", error);
+  }
+};
+
 export const storage = {
-  getEvents: (): Event[] => {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(EVENTS_KEY);
-    if (!saved) {
-        localStorage.setItem(EVENTS_KEY, JSON.stringify(INITIAL_EVENTS));
-        return INITIAL_EVENTS;
+  // Events
+  getEvents: async (): Promise<Event[]> => {
+    try {
+      const eventsSnapshot = await getDocs(collection(db, EVENTS_COLLECTION));
+      const events: Event[] = [];
+      eventsSnapshot.forEach(doc => {
+        events.push({ ...doc.data() as Event, id: doc.id });
+      });
+      return events;
+    } catch (error) {
+      console.error("Error getting events:", error);
+      return [];
     }
-    return JSON.parse(saved);
-  },
-  
-  saveEvents: (events: Event[]) => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
   },
 
-  getBookings: (): Booking[] => {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(BOOKINGS_KEY);
-    return saved ? JSON.parse(saved) : [];
+  saveEvents: async (events: Event[]) => {
+    try {
+      const batch = writeBatch(db);
+      events.forEach(event => {
+        const eventRef = doc(db, EVENTS_COLLECTION, event.id);
+        batch.set(eventRef, event);
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Error saving events:", error);
+    }
   },
 
-  saveBooking: (booking: Booking) => {
-    if (typeof window === "undefined") return;
-    const bookings = storage.getBookings();
-    bookings.push(booking);
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
-    
-    // Update seats for legacy bookings
-    const events = storage.getEvents();
-    const eventIndex = events.findIndex(e => e.id === booking.items[0]?.eventId);
-    if (eventIndex !== -1 && booking.items[0]?.category) {
-        const event = events[eventIndex];
-        booking.items.forEach(item => {
+  saveEvent: async (event: Event) => {
+    try {
+      const eventRef = doc(db, EVENTS_COLLECTION, event.id);
+      await setDoc(eventRef, event);
+    } catch (error) {
+      console.error("Error saving event:", error);
+    }
+  },
+
+  // Bookings
+  getBookings: async (): Promise<Booking[]> => {
+    try {
+      const bookingsSnapshot = await getDocs(collection(db, BOOKINGS_COLLECTION));
+      const bookings: Booking[] = [];
+      bookingsSnapshot.forEach(doc => {
+        bookings.push({ ...doc.data() as Booking, id: doc.id });
+      });
+      return bookings;
+    } catch (error) {
+      console.error("Error getting bookings:", error);
+      return [];
+    }
+  },
+
+  saveBooking: async (booking: Booking) => {
+    try {
+      // Add booking to Firestore
+      await addDoc(collection(db, BOOKINGS_COLLECTION), booking);
+
+      // Update available seats for the event
+      const eventId = booking.items[0]?.eventId;
+      if (eventId) {
+        const eventRef = doc(db, EVENTS_COLLECTION, eventId);
+        const eventSnap = await getDoc(eventRef);
+        
+        if (eventSnap.exists()) {
+          const event = eventSnap.data() as Event;
+          
+          // Update available seats based on booking
+          booking.items.forEach(item => {
             if (item.category && item.quantity) {
-                event.availableSeats[item.category] -= item.quantity;
+              event.availableSeats[item.category] -= item.quantity;
             }
-        });
-        events[eventIndex] = event;
-        storage.saveEvents(events);
+          });
+
+          await updateDoc(eventRef, { availableSeats: event.availableSeats });
+        }
+      }
+    } catch (error) {
+      console.error("Error saving booking:", error);
     }
   },
 
-  // Tier pricing storage
-  getTierPricing: (): TierConfig[] => {
-    if (typeof window === "undefined") return DEFAULT_TIER_PRICING;
-    const saved = localStorage.getItem(TIER_PRICING_KEY);
-    if (!saved) {
-      localStorage.setItem(TIER_PRICING_KEY, JSON.stringify(DEFAULT_TIER_PRICING));
+  // Tier pricing
+  getTierPricing: async (): Promise<TierConfig[]> => {
+    try {
+      const tierPricingRef = doc(db, CONFIG_COLLECTION, TIER_PRICING_DOC);
+      const tierPricingSnap = await getDoc(tierPricingRef);
+      
+      if (tierPricingSnap.exists()) {
+        return tierPricingSnap.data().tiers as TierConfig[];
+      }
+      
+      // Initialize if doesn't exist
+      await setDoc(tierPricingRef, { tiers: DEFAULT_TIER_PRICING });
+      return DEFAULT_TIER_PRICING;
+    } catch (error) {
+      console.error("Error getting tier pricing:", error);
       return DEFAULT_TIER_PRICING;
     }
-    return JSON.parse(saved);
   },
 
-  saveTierPricing: (pricing: TierConfig[]) => {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(TIER_PRICING_KEY, JSON.stringify(pricing));
-    // Dispatch custom event for same-page components to listen
-    window.dispatchEvent(new CustomEvent('tierPricingChanged', { detail: pricing }));
-  },
-
-  updateTierPrice: (tierId: SeatTier, newPrice: number) => {
-    const pricing = storage.getTierPricing();
-    const tierIndex = pricing.findIndex(t => t.id === tierId);
-    if (tierIndex !== -1) {
-      pricing[tierIndex].price = newPrice;
-      storage.saveTierPricing(pricing);
+  saveTierPricing: async (pricing: TierConfig[]) => {
+    try {
+      const tierPricingRef = doc(db, CONFIG_COLLECTION, TIER_PRICING_DOC);
+      await setDoc(tierPricingRef, { tiers: pricing });
+      
+      // Dispatch custom event for same-page components to listen
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tierPricingChanged', { detail: pricing }));
+      }
+    } catch (error) {
+      console.error("Error saving tier pricing:", error);
     }
-    return pricing;
   },
 
-  // Auth storage
+  updateTierPrice: async (tierId: SeatTier, newPrice: number): Promise<TierConfig[]> => {
+    try {
+      const pricing = await storage.getTierPricing();
+      const tierIndex = pricing.findIndex(t => t.id === tierId);
+      
+      if (tierIndex !== -1) {
+        pricing[tierIndex].price = newPrice;
+        await storage.saveTierPricing(pricing);
+      }
+      
+      return pricing;
+    } catch (error) {
+      console.error("Error updating tier price:", error);
+      return [];
+    }
+  },
+
+  // Real-time listeners
+  onEventsChange: (callback: (events: Event[]) => void) => {
+    const unsubscribe = onSnapshot(
+      collection(db, EVENTS_COLLECTION),
+      (snapshot) => {
+        const events: Event[] = [];
+        snapshot.forEach(doc => {
+          events.push({ ...doc.data() as Event, id: doc.id });
+        });
+        callback(events);
+      },
+      (error) => {
+        console.error("Error listening to events:", error);
+      }
+    );
+    return unsubscribe;
+  },
+
+  onTierPricingChange: (callback: (pricing: TierConfig[]) => void) => {
+    const tierPricingRef = doc(db, CONFIG_COLLECTION, TIER_PRICING_DOC);
+    const unsubscribe = onSnapshot(
+      tierPricingRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          callback(snapshot.data().tiers as TierConfig[]);
+        }
+      },
+      (error) => {
+        console.error("Error listening to tier pricing:", error);
+      }
+    );
+    return unsubscribe;
+  },
+
+  // Auth storage (keep in localStorage for simplicity)
   getAuth: (): { role: UserRole; isLoggedIn: boolean } => {
     if (typeof window === "undefined") return { role: 'customer', isLoggedIn: false };
     const saved = localStorage.getItem(AUTH_KEY);
@@ -164,24 +304,121 @@ export const storage = {
     if (typeof window === "undefined") return;
     const auth = { role, isLoggedIn: true };
     localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
-    // Dispatch event for cross-component sync
     window.dispatchEvent(new CustomEvent('authChanged', { detail: auth }));
+  },
+
+  // User management
+  registerUser: async (user: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string; user?: User }> => {
+    try {
+      // Check if email already exists
+      const usersRef = collection(db, USERS_COLLECTION);
+      const q = query(usersRef, where("email", "==", user.email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        return { success: false, error: "Email already registered" };
+      }
+
+      // Create new user
+      const newUser: User = {
+        ...user,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString()
+      };
+
+      await setDoc(doc(db, USERS_COLLECTION, newUser.id), newUser);
+      return { success: true, user: newUser };
+    } catch (error) {
+      console.error("Error registering user:", error);
+      return { success: false, error: "Registration failed" };
+    }
+  },
+
+  getUserByEmail: async (email: string): Promise<User | null> => {
+    try {
+      const usersRef = collection(db, USERS_COLLECTION);
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) return null;
+      
+      const userDoc = querySnapshot.docs[0];
+      return { ...userDoc.data() as User, id: userDoc.id };
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return null;
+    }
+  },
+
+  validateUser: async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+    try {
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        return { success: false, error: "Invalid email or password" };
+      }
+
+      if (user.password !== password) {
+        return { success: false, error: "Invalid email or password" };
+      }
+
+      return { success: true, user };
+    } catch (error) {
+      console.error("Error validating user:", error);
+      return { success: false, error: "Login failed" };
+    }
+  },
+
+  getCurrentUser: (): User | null => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem(CURRENT_USER_KEY);
+    if (!saved) return null;
+    return JSON.parse(saved);
+  },
+
+  setCurrentUser: (user: User) => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+    window.dispatchEvent(new CustomEvent('userChanged', { detail: user }));
+  },
+
+  clearCurrentUser: () => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(CURRENT_USER_KEY);
+    window.dispatchEvent(new CustomEvent('userChanged', { detail: null }));
   },
 
   logout: () => {
     if (typeof window === "undefined") return;
     localStorage.removeItem(AUTH_KEY);
+    storage.clearCurrentUser();
     window.dispatchEvent(new CustomEvent('authChanged', { detail: { role: 'customer', isLoggedIn: false } }));
   },
-  
-  resetData: () => {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(EVENTS_KEY);
-    localStorage.removeItem(BOOKINGS_KEY);
-    localStorage.removeItem(PRICING_KEY);
-    localStorage.removeItem(TIER_PRICING_KEY);
-    localStorage.removeItem(AUTH_KEY);
-    window.location.reload();
+
+  resetData: async () => {
+    try {
+      // Delete all events
+      const eventsSnapshot = await getDocs(collection(db, EVENTS_COLLECTION));
+      const batch = writeBatch(db);
+      eventsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // Delete all bookings
+      const bookingsSnapshot = await getDocs(collection(db, BOOKINGS_COLLECTION));
+      bookingsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+
+      // Clear auth
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(AUTH_KEY);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error resetting data:", error);
+    }
   }
 };
-

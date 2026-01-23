@@ -29,7 +29,7 @@ export default function CreateEventPage() {
         tierLayout: 'ascending' as 'ascending' | 'descending'
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const newEvent: Event = {
@@ -61,9 +61,8 @@ export default function CreateEventPage() {
             discountPercentage: 0
         };
 
-        const currentEvents = storage.getEvents();
-        storage.saveEvents([...currentEvents, newEvent]);
-        refreshData();
+        await storage.saveEvent(newEvent);
+        await refreshData();
         router.push('/admin');
     };
 
