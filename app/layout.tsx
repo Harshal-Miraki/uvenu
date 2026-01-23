@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { StoreProvider } from "@/context/StoreContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import { Navbar } from "@/components/layout/Navbar";
 import "./globals.css";
 
@@ -25,16 +26,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <StoreProvider>
-          <Navbar />
-          <main className="flex-1">
-            {children}
-          </main>
-        </StoreProvider>
+        <LanguageProvider>
+          <StoreProvider>
+            <Navbar />
+            <main className="flex-1">
+              {children}
+            </main>
+          </StoreProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

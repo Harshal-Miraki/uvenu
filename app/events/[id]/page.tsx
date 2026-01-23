@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useStore } from "@/context/StoreContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -15,6 +16,7 @@ export default function EventDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
     const { events, addToCart } = useStore();
+    const { t } = useLanguage();
     const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
     const [tierConfig, setTierConfig] = useState<TierConfig[]>(DEFAULT_TIER_CONFIG);
 
@@ -54,8 +56,8 @@ export default function EventDetailsPage() {
         return (
             <div className="min-h-screen flex items-center justify-center text-gray-900">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Event Not Found</h1>
-                    <Button onClick={() => router.push('/events')}>Back to Events</Button>
+                    <h1 className="text-2xl font-bold mb-4">{t('eventDetails.eventNotFound')}</h1>
+                    <Button onClick={() => router.push('/events')}>{t('eventDetails.backToEvents')}</Button>
                 </div>
             </div>
         );
@@ -123,13 +125,13 @@ export default function EventDetailsPage() {
                 </div>
                 <div className="absolute top-6 left-4 container mx-auto px-4 z-10">
                     <Button variant="ghost" className="text-white hover:text-gold-500 pl-0" onClick={() => router.back()}>
-                        <ChevronLeft className="w-4 h-4 mr-2" /> Back to Events
+                        <ChevronLeft className="w-4 h-4 mr-2" /> {t('eventDetails.backToEvents')}
                     </Button>
                 </div>
                 <div className="absolute bottom-0 left-0 w-full container mx-auto px-4 pb-8 z-10">
                     <div className="flex gap-2 mb-3">
-                        {event.isEarlyBird && <Badge className="bg-gold-500 text-black">EARLY BIRD - {event.discountPercentage}% OFF</Badge>}
-                        {event.isLastMinute && <Badge className="bg-red-500 text-white">LAST MINUTE - {event.discountPercentage}% OFF</Badge>}
+                        {event.isEarlyBird && <Badge className="bg-gold-500 text-black">{t('events.earlyBird')} - {event.discountPercentage}% OFF</Badge>}
+                        {event.isLastMinute && <Badge className="bg-red-500 text-white">{t('events.lastMinute')} - {event.discountPercentage}% OFF</Badge>}
                     </div>
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{event.title}</h1>
                     <div className="flex flex-wrap items-center gap-4 text-gray-200 text-sm">
@@ -155,7 +157,7 @@ export default function EventDetailsPage() {
                     <div className="xl:col-span-3">
                         <Card className="bg-white border-gray-200 shadow-sm">
                             <CardContent className="p-6">
-                                <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Select Your Seats</h2>
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">{t('eventDetails.selectSeats')}</h2>
                                 <SeatMap
                                     seats={seats}
                                     tierConfig={tierConfig}
@@ -171,12 +173,12 @@ export default function EventDetailsPage() {
                     <div className="xl:col-span-1">
                         <Card className="bg-white border-gray-200 sticky top-24 shadow-sm">
                             <CardContent className="p-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Your Selection</h3>
+                                <h3 className="text-lg font-bold text-gray-900 mb-4">{t('eventDetails.yourSelection')}</h3>
 
                                 {selectedSeats.length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">
                                         <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                        <p className="text-sm">Click on seats to select them</p>
+                                        <p className="text-sm">{t('eventDetails.clickToSelect')}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
@@ -197,11 +199,11 @@ export default function EventDetailsPage() {
                                                                 style={{ backgroundColor: tier?.color }}
                                                             />
                                                             <span className="text-sm font-medium text-gray-900">
-                                                                Row {seat.row}, Seat {seat.number}
+                                                                {t('eventDetails.row')} {seat.row}, {t('eventDetails.seat')} {seat.number}
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-bold text-gold-600">{price} QAR</span>
+                                                            <span className="text-sm font-bold text-gold-600">{price} {t('common.qar')}</span>
                                                             <button
                                                                 onClick={() => removeSeat(seat.id)}
                                                                 className="text-gray-400 hover:text-red-500 transition-colors"
@@ -217,13 +219,13 @@ export default function EventDetailsPage() {
                                         {/* Summary */}
                                         <div className="border-t border-gray-200 pt-4 space-y-2">
                                             <div className="flex justify-between text-sm text-gray-600">
-                                                <span>Seats Selected</span>
+                                                <span>{t('eventDetails.seatsSelected')}</span>
                                                 <span className="font-medium">{selectedSeats.length}</span>
                                             </div>
                                             <div className="flex justify-between items-end">
-                                                <span className="text-gray-600">Total</span>
+                                                <span className="text-gray-600">{t('checkout.total')}</span>
                                                 <span className="text-2xl font-bold text-gold-600">
-                                                    {totalPrice} <span className="text-sm text-gray-500 font-normal">QAR</span>
+                                                    {totalPrice} <span className="text-sm text-gray-500 font-normal">{t('common.qar')}</span>
                                                 </span>
                                             </div>
                                         </div>
@@ -233,7 +235,7 @@ export default function EventDetailsPage() {
                                             onClick={handleAddToCart}
                                         >
                                             <ShoppingCart className="w-5 h-5 mr-2" />
-                                            Add to Cart
+                                            {t('eventDetails.addToCart')}
                                         </Button>
                                     </div>
                                 )}
@@ -243,7 +245,7 @@ export default function EventDetailsPage() {
                         {/* Event Description */}
                         <Card className="bg-white border-gray-200 shadow-sm mt-4">
                             <CardContent className="p-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-3">About</h3>
+                                <h3 className="text-lg font-bold text-gray-900 mb-3">{t('eventDetails.about')}</h3>
                                 <p className="text-gray-600 text-sm leading-relaxed">{event.description}</p>
                             </CardContent>
                         </Card>

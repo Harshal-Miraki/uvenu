@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore } from "@/context/StoreContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { ShoppingCart, User, LogOut, LogIn } from "lucide-react";
+import { ShoppingCart, User, LogOut, LogIn, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
     const { role, isLoggedIn, logout, cart, currentUser } = useStore();
+    const { language, setLanguage, t } = useLanguage();
 
     // Calculate cart items - handle both formats
     const totalItems = cart.reduce((acc, item) => {
@@ -44,7 +46,7 @@ export function Navbar() {
                                     pathname === "/events" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Events
+                                {t('nav.events')}
                             </Link>
                         </div>
                     )}
@@ -59,7 +61,7 @@ export function Navbar() {
                                     pathname === "/admin" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Dashboard
+                                {t('nav.dashboard')}
                             </Link>
                             <Link
                                 href="/admin/create-event"
@@ -68,7 +70,7 @@ export function Navbar() {
                                     pathname === "/admin/create-event" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Create Event
+                                {t('nav.createEvent')}
                             </Link>
                             <Link
                                 href="/admin/manage-pricing"
@@ -77,7 +79,7 @@ export function Navbar() {
                                     pathname === "/admin/manage-pricing" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Pricing
+                                {t('nav.pricing')}
                             </Link>
                             <Link
                                 href="/admin/manage-layout"
@@ -86,7 +88,7 @@ export function Navbar() {
                                     pathname === "/admin/manage-layout" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Layout
+                                {t('nav.layout')}
                             </Link>
                             <Link
                                 href="/admin/bookings"
@@ -95,13 +97,45 @@ export function Navbar() {
                                     pathname === "/admin/bookings" ? "text-gold-600" : "text-gray-600"
                                 )}
                             >
-                                Bookings
+                                {t('nav.bookings')}
                             </Link>
                         </div>
                     )}
                 </div>
 
                 <div className="flex items-center gap-4">
+                    {/* Language Toggle */}
+                    <div className="relative group">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-2"
+                        >
+                            <Globe className="h-4 w-4" />
+                            <span className="text-xs font-medium">{language.toUpperCase()}</span>
+                        </Button>
+                        <div className="absolute right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <button
+                                onClick={() => setLanguage('en')}
+                                className={cn(
+                                    "block w-full px-4 py-2 text-sm text-left hover:bg-gray-50 whitespace-nowrap",
+                                    language === 'en' ? "bg-gold-50 text-gold-600 font-medium" : "text-gray-700"
+                                )}
+                            >
+                                English
+                            </button>
+                            <button
+                                onClick={() => setLanguage('ar')}
+                                className={cn(
+                                    "block w-full px-4 py-2 text-sm text-left hover:bg-gray-50 whitespace-nowrap",
+                                    language === 'ar' ? "bg-gold-50 text-gold-600 font-medium" : "text-gray-700"
+                                )}
+                            >
+                                العربية
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Auth State */}
                     {isLoggedIn ? (
                         <div className="flex items-center gap-3">
@@ -110,19 +144,19 @@ export function Navbar() {
                                     <User className="h-4 w-4" />
                                 </div>
                                 <span className="text-sm font-medium text-gray-700">
-                                    {role === 'admin' ? 'Admin' : (currentUser?.name || 'Customer')}
+                                    {role === 'admin' ? t('nav.admin') : (currentUser?.name || t('nav.customer'))}
                                 </span>
                             </div>
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4 mr-2" />
-                                Logout
+                                {t('nav.logout')}
                             </Button>
                         </div>
                     ) : (
                         <Link href="/login">
                             <Button variant="default" size="sm">
                                 <LogIn className="h-4 w-4 mr-2" />
-                                Login
+                                {t('nav.login')}
                             </Button>
                         </Link>
                     )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/context/StoreContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import { DollarSign, Ticket, Calendar, TrendingUp } from "lucide-react";
 
 export default function AdminDashboard() {
     const { events } = useStore();
+    const { t } = useLanguage();
     const [bookings, setBookings] = useState<Booking[]>([]);
 
     useEffect(() => {
@@ -34,12 +36,12 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="container mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('admin.dashboard')}</h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <Card className="bg-white border-charcoal-500 shadow-sm">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-500">Total Revenue</CardTitle>
+                            <CardTitle className="text-sm font-medium text-gray-500">{t('admin.totalRevenue')}</CardTitle>
                             {/* <DollarSign className="h-4 w-4 text-gold-600" /> */}
                         </CardHeader>
                         <CardContent>
@@ -88,15 +90,17 @@ export default function AdminDashboard() {
                             <table className="w-full text-sm text-left text-gray-500">
                                 <thead className="text-xs text-gray-700 uppercase bg-gray-100">
                                     <tr>
-                                        <th className="px-6 py-3">Booking ID</th>
-                                        <th className="px-6 py-3">Customer</th>
-                                        <th className="px-6 py-3">Event</th>
-                                        <th className="px-6 py-3">Seat Type</th>
-                                        <th className="px-6 py-3">Seats Booked</th>
-                                        <th className="px-6 py-3">Price/Seat</th>
-                                        <th className="px-6 py-3">Total Amount</th>
-                                        <th className="px-6 py-3">Date</th>
-                                        <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3">{t('admin.bookingId')}</th>
+                                        <th className="px-6 py-3">{t('admin.customer')}</th>
+                                        <th className="px-6 py-3">{t('admin.event')}</th>
+                                        <th className="px-6 py-3">{t('admin.showDate')}</th>
+                                        <th className="px-6 py-3">{t('admin.showTime')}</th>
+                                        <th className="px-6 py-3">{t('admin.seatType')}</th>
+                                        <th className="px-6 py-3">{t('admin.seatsBooked')}</th>
+                                        <th className="px-6 py-3">{t('admin.pricePerSeat')}</th>
+                                        <th className="px-6 py-3">{t('admin.totalAmount')}</th>
+                                        <th className="px-6 py-3">{t('admin.date')}</th>
+                                        <th className="px-6 py-3">{t('admin.status')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -112,6 +116,10 @@ export default function AdminDashboard() {
                                                 return sum + (item.quantity || 0);
                                             }, 0);
 
+                                            // Find event for time display (using first item)
+                                            const eventId = booking.items[0]?.eventId;
+                                            const event = events.find(e => e.id === eventId);
+
                                             return (
                                                 <tr key={booking.id} className="border-b border-gray-200 hover:bg-gray-50">
                                                     <td className="px-6 py-4 font-mono text-xs">{booking.id.slice(0, 8)}</td>
@@ -125,6 +133,14 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="font-medium text-gray-900">{booking.items[0]?.eventTitle}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-gray-900">
+                                                            {booking.items[0]?.eventDate ? new Date(booking.items[0].eventDate).toLocaleDateString() : 'N/A'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-gray-900">{event?.time || 'N/A'}</div>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="space-y-1">
@@ -193,7 +209,7 @@ export default function AdminDashboard() {
                                         })}
                                     {bookings.length === 0 && (
                                         <tr>
-                                            <td colSpan={9} className="text-center py-8 text-gray-400">No bookings found yet.</td>
+                                            <td colSpan={11} className="text-center py-8 text-gray-400">{t('admin.noBookings')}</td>
                                         </tr>
                                     )}
                                 </tbody>
