@@ -259,20 +259,101 @@ export default function SeatMap({
         sectionId: 'left' | 'center' | 'right';
         sectionSeats: Record<string, Seat[]>;
     }) => {
-        const sectionLabel = sectionId === 'left' ? 'Left' : sectionId === 'center' ? 'Center' : 'Right';
+        const premiumRows = ['A', 'B'];
+        const regularRows = rows.filter(r => !premiumRows.includes(r)); // C through P
+
+        // Get seat count for premium section width calculation
+        const seatCount = sectionId === 'center' ? 12 : 10;
+        const seatSize = 24; // w-6 = 24px
+        const seatGap = 2;
+        const rowWidth = seatCount * seatSize + (seatCount - 1) * seatGap;
 
         return (
-            <div className="flex flex-col gap-[2px]">
-                {rows.map((row, rowIndex) => {
-                    const rowSeats = sectionSeats[row] || [];
-                    const tier = getTierForRow(rowIndex);
-                    const isPremiumRow = rowIndex < 2; // First 2 rows are premium
-                    const isLastPremiumRow = rowIndex === 1; // Row B is the last premium row
+            <div className="flex flex-col">
+                {/* PREMIUM SECTION BOX - Separate container with radial arc */}
+                <div
+                    className="relative mb-3 p-3 pt-5 rounded-xl border-2 border-red-300 shadow-lg"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)',
+                        boxShadow: '0 4px 20px rgba(239,68,68,0.15)'
+                    }}
+                >
+                    {/* Premium Badge */}
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-md z-10">
+                        Premium
+                    </div>
 
-                    return (
-                        <div key={`${sectionId}-${row}`}>
-                            {/* Seat row */}
-                            <div className="flex justify-center gap-[2px]">
+                    {/* Premium Rows Container */}
+                    <div className="relative" style={{ height: '70px' }}>
+                        {premiumRows.map((row, rowIndex) => {
+                            const rowSeats = sectionSeats[row] || [];
+                            const arcRadius = 250;
+                            const arcSpan = 35;
+
+                            return (
+                                <div
+                                    key={`${sectionId}-premium-${row}`}
+                                    className="absolute left-1/2 -translate-x-1/2"
+                                    style={{
+                                        width: `${rowWidth}px`,
+                                        top: `${rowIndex * 32}px`
+                                    }}
+                                >
+                                    <div className="relative h-7 flex justify-center">
+                                        {rowSeats.map((seat, seatIndex) => {
+                                            const totalSeats = rowSeats.length;
+                                            const startAngle = -arcSpan / 2;
+                                            const angleStep = arcSpan / (totalSeats - 1);
+                                            const angle = startAngle + (seatIndex * angleStep);
+                                            const angleRad = angle * (Math.PI / 180);
+                                            const yOffset = (1 - Math.cos(angleRad)) * (arcRadius * 0.08);
+                                            const xPos = (seatIndex / (totalSeats - 1)) * (rowWidth - seatSize);
+
+                                            return (
+                                                <div
+                                                    key={seat.id}
+                                                    className="absolute"
+                                                    style={{
+                                                        left: `${xPos}px`,
+                                                        top: `${yOffset}px`,
+                                                    }}
+                                                >
+                                                    <SeatButton
+                                                        seat={seat}
+                                                        tierConfig={tierConfig}
+                                                        isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                                        onClick={() => onSeatSelect(seat)}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* REGULAR SECTION - With slight radial curve for left/right */}
+                <div className="flex flex-col gap-[2px]">
+                    {regularRows.map((row, rowIdx) => {
+                        const rowSeats = sectionSeats[row] || [];
+
+                        // Calculate curve for left/right sections (center stays straight)
+                        // Curve is more pronounced in the middle rows, less at top and bottom
+                        const curveIntensity = sectionId === 'center' ? 0 :
+                            Math.sin((rowIdx / (regularRows.length - 1)) * Math.PI) * 8;
+
+                        return (
+                            <div
+                                key={`${sectionId}-${row}`}
+                                className="flex justify-center gap-[2px]"
+                                style={{
+                                    // Left section curves inward on right, right section curves inward on left
+                                    paddingLeft: sectionId === 'right' ? `${curveIntensity}px` : 0,
+                                    paddingRight: sectionId === 'left' ? `${curveIntensity}px` : 0,
+                                }}
+                            >
                                 {rowSeats.map(seat => (
                                     <SeatButton
                                         key={seat.id}
@@ -283,21 +364,9 @@ export default function SeatMap({
                                     />
                                 ))}
                             </div>
-
-                            {/* Gap and horizontal line after premium rows (after row B) */}
-                            {isLastPremiumRow && (
-                                <div className="mt-3 mb-2">
-                                    <div className="h-[1px] bg-gradient-to-r from-transparent via-red-400 to-transparent opacity-60" />
-                                    <div className="text-center mt-1">
-                                        <span className="text-[9px] uppercase tracking-widest text-red-400 font-semibold">
-                                            Premium Section
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
         );
     };
@@ -350,47 +419,20 @@ export default function SeatMap({
                     {/* Left Section */}
                     <div className="flex flex-col items-center">
                         <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Left</span>
-                        <div className="relative p-2 rounded-xl" style={{
-                            background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(59,130,246,0.05) 100%)',
-                            border: '1px solid rgba(6,182,212,0.2)'
-                        }}>
-                            <SectionBlock sectionId="left" sectionSeats={seatsBySection.left} />
-                        </div>
+                        <SectionBlock sectionId="left" sectionSeats={seatsBySection.left} />
                     </div>
 
                     {/* Center Section */}
                     <div className="flex flex-col items-center">
                         <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Center</span>
-                        <div className="relative p-2 rounded-xl" style={{
-                            background: 'linear-gradient(135deg, rgba(168,85,247,0.05) 0%, rgba(239,68,68,0.05) 100%)',
-                            border: '1px solid rgba(168,85,247,0.2)'
-                        }}>
-                            <SectionBlock sectionId="center" sectionSeats={seatsBySection.center} />
-                        </div>
+                        <SectionBlock sectionId="center" sectionSeats={seatsBySection.center} />
                     </div>
 
                     {/* Right Section */}
                     <div className="flex flex-col items-center">
                         <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Right</span>
-                        <div className="relative p-2 rounded-xl" style={{
-                            background: 'linear-gradient(135deg, rgba(59,130,246,0.05) 0%, rgba(6,182,212,0.05) 100%)',
-                            border: '1px solid rgba(6,182,212,0.2)'
-                        }}>
-                            <SectionBlock sectionId="right" sectionSeats={seatsBySection.right} />
-                        </div>
+                        <SectionBlock sectionId="right" sectionSeats={seatsBySection.right} />
                     </div>
-                </div>
-
-                {/* Row labels on the right */}
-                <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center py-12">
-                    {rows.map((row, idx) => (
-                        <div
-                            key={row}
-                            className="text-[10px] font-bold text-gray-400 h-[22px] flex items-center"
-                        >
-                            {row}
-                        </div>
-                    ))}
                 </div>
             </div>
 
