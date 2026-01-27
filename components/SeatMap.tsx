@@ -27,48 +27,54 @@ interface SeatMapProps {
     discountPercentage?: number;
 }
 
-// Generate a curved theater layout
+// Generate a 3-section theater layout (matching your image)
+// Left: 16 rows × 10 seats, Center: 16 rows × 12 seats, Right: 16 rows × 10 seats
 export function generateTheaterSeats(tierLayout: 'ascending' | 'descending' = 'ascending'): Seat[] {
     const seats: Seat[] = [];
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-    // Define tier zones by row based on layout
-    const tierByRow: Record<string, SeatTier> = tierLayout === 'ascending'
-        ? {
-            // Ascending: Premium at front
-            'A': 'platinum', 'B': 'platinum',
-            'C': 'gold', 'D': 'gold', 'E': 'gold',
-            'F': 'silver', 'G': 'silver', 'H': 'silver',
-            'I': 'bronze', 'J': 'bronze', 'K': 'bronze', 'L': 'bronze'
+    // 16 rows labeled A through P
+    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+
+    // Section configuration: [sectionId, seatCount]
+    const sections: { id: 'left' | 'center' | 'right'; seats: number }[] = [
+        { id: 'left', seats: 10 },
+        { id: 'center', seats: 12 },
+        { id: 'right', seats: 10 }
+    ];
+
+    // Define tier zones by row (rows 1-2 = Platinum, 3-5 = Gold, 6-10 = Silver, 11-16 = Bronze)
+    const getTierByRowIndex = (rowIndex: number): SeatTier => {
+        if (tierLayout === 'ascending') {
+            // Premium at front
+            if (rowIndex < 2) return 'platinum';      // A, B
+            if (rowIndex < 5) return 'gold';          // C, D, E
+            if (rowIndex < 10) return 'silver';       // F, G, H, I, J
+            return 'bronze';                          // K, L, M, N, O, P
+        } else {
+            // Premium at back (descending)
+            if (rowIndex >= 14) return 'platinum';    // O, P
+            if (rowIndex >= 11) return 'gold';        // L, M, N
+            if (rowIndex >= 6) return 'silver';       // G, H, I, J, K
+            return 'bronze';                          // A, B, C, D, E, F
         }
-        : {
-            // Descending: Premium at back
-            'A': 'bronze', 'B': 'bronze', 'C': 'bronze', 'D': 'bronze',
-            'E': 'silver', 'F': 'silver', 'G': 'silver',
-            'H': 'gold', 'I': 'gold', 'J': 'gold',
-            'K': 'platinum', 'L': 'platinum'
-        };
-
-    // Seats per row - curved theater has more seats in back rows
-    const seatsPerRow: Record<string, number> = {
-        'A': 8, 'B': 10, 'C': 12, 'D': 12, 'E': 14, 'F': 14,
-        'G': 16, 'H': 16, 'I': 18, 'J': 18, 'K': 20, 'L': 20
     };
 
-    rows.forEach(row => {
-        const seatCount = seatsPerRow[row];
-        const tier = tierByRow[row];
+    // Generate seats for each section and row
+    rows.forEach((row, rowIndex) => {
+        const tier = getTierByRowIndex(rowIndex);
 
-        for (let i = 1; i <= seatCount; i++) {
-            seats.push({
-                id: `${row}-${i}`,
-                row,
-                number: i,
-                section: 'center',
-                tier,
-                status: Math.random() > 0.88 ? 'sold' : 'available' // 12% sold
-            });
-        }
+        sections.forEach(section => {
+            for (let seatNum = 1; seatNum <= section.seats; seatNum++) {
+                seats.push({
+                    id: `${section.id}-${row}-${seatNum}`,
+                    row,
+                    number: seatNum,
+                    section: section.id,
+                    tier,
+                    status: Math.random() > 0.85 ? 'sold' : 'available' // 15% sold
+                });
+            }
+        });
     });
 
     return seats;
@@ -89,20 +95,35 @@ function SeatButton({
     const tier = tierConfig.find(t => t.id === seat.tier);
     const isSold = seat.status === 'sold';
 
+    // Calculate background color based on state
+    const getBackgroundColor = () => {
+        if (isSold) return '#9CA3AF'; // Gray for sold
+        if (isSelected) return tier?.color || '#3B82F6'; // Full tier color when selected
+        // Show lighter version of tier color for available seats
+        return tier?.color ? `${tier.color}40` : '#E5E7EB'; // 40 = 25% opacity hex
+    };
+
+    // Border color for better visibility
+    const getBorderColor = () => {
+        if (isSold) return '#6B7280';
+        return tier?.color || '#9CA3AF';
+    };
+
     return (
         <button
             disabled={isSold}
             onClick={onClick}
             className={cn(
-                "w-5 h-5 md:w-6 md:h-6 rounded-md transition-all duration-150 shrink-0",
-                isSold && "bg-gray-300 cursor-not-allowed",
-                !isSold && !isSelected && "bg-gray-200 hover:bg-gray-300 hover:scale-110 cursor-pointer",
-                isSelected && "scale-110 shadow-lg ring-2 ring-white"
+                "w-5 h-5 md:w-6 md:h-6 rounded-md transition-all duration-150 shrink-0 border-2",
+                isSold && "cursor-not-allowed opacity-60",
+                !isSold && !isSelected && "hover:scale-110 hover:shadow-md cursor-pointer",
+                isSelected && "scale-110 shadow-lg ring-2 ring-white ring-offset-1"
             )}
             style={{
-                backgroundColor: isSelected ? tier?.color : isSold ? undefined : '#E5E7EB',
+                backgroundColor: getBackgroundColor(),
+                borderColor: getBorderColor(),
             }}
-            title={isSold ? 'Sold' : `Row ${seat.row}, Seat ${seat.number} - ${tier?.price} QAR`}
+            title={isSold ? 'Sold' : `Row ${seat.row}, Seat ${seat.number} - ${tier?.name} - ${tier?.price} QAR`}
         />
     );
 }
@@ -194,7 +215,7 @@ function SeatLegend({ tierConfig, discountPercentage = 0 }: { tierConfig: TierCo
     );
 }
 
-// Main SeatMap component
+// Main SeatMap component - 3 Section Layout
 export default function SeatMap({
     seats,
     tierConfig,
@@ -202,89 +223,174 @@ export default function SeatMap({
     selectedSeats,
     discountPercentage = 0
 }: SeatMapProps) {
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+    const sections: ('left' | 'center' | 'right')[] = ['left', 'center', 'right'];
 
-    // Group seats by row
-    const seatsByRow = useMemo(() => {
-        return rows.map(row => seats.filter(s => s.row === row));
+    // Group seats by section and row
+    const seatsBySection = useMemo(() => {
+        const result: Record<string, Record<string, Seat[]>> = {
+            left: {},
+            center: {},
+            right: {}
+        };
+
+        rows.forEach(row => {
+            result.left[row] = seats.filter(s => s.section === 'left' && s.row === row);
+            result.center[row] = seats.filter(s => s.section === 'center' && s.row === row);
+            result.right[row] = seats.filter(s => s.section === 'right' && s.row === row);
+        });
+
+        return result;
     }, [seats]);
 
-    // Get tier boundaries for visual indicator
-    const tierBoundaries = [
-        { rows: ['A', 'B'], tier: tierConfig.find(t => t.id === 'platinum') },
-        { rows: ['C', 'D', 'E'], tier: tierConfig.find(t => t.id === 'gold') },
-        { rows: ['F', 'G', 'H'], tier: tierConfig.find(t => t.id === 'silver') },
-        { rows: ['I', 'J', 'K', 'L'], tier: tierConfig.find(t => t.id === 'bronze') }
+    // Get tier for a row
+    const getTierForRow = (rowIndex: number) => {
+        if (rowIndex < 2) return tierConfig.find(t => t.id === 'platinum');
+        if (rowIndex < 5) return tierConfig.find(t => t.id === 'gold');
+        if (rowIndex < 10) return tierConfig.find(t => t.id === 'silver');
+        return tierConfig.find(t => t.id === 'bronze');
+    };
+
+    // Section component with curved rows
+    const SectionBlock = ({
+        sectionId,
+        sectionSeats
+    }: {
+        sectionId: 'left' | 'center' | 'right';
+        sectionSeats: Record<string, Seat[]>;
+    }) => {
+        const sectionLabel = sectionId === 'left' ? 'Left' : sectionId === 'center' ? 'Center' : 'Right';
+
+        return (
+            <div className="flex flex-col gap-[2px]">
+                {rows.map((row, rowIndex) => {
+                    const rowSeats = sectionSeats[row] || [];
+                    const tier = getTierForRow(rowIndex);
+                    const isPremiumRow = rowIndex < 2; // First 2 rows are premium
+                    const isLastPremiumRow = rowIndex === 1; // Row B is the last premium row
+
+                    return (
+                        <div key={`${sectionId}-${row}`}>
+                            {/* Seat row */}
+                            <div className="flex justify-center gap-[2px]">
+                                {rowSeats.map(seat => (
+                                    <SeatButton
+                                        key={seat.id}
+                                        seat={seat}
+                                        tierConfig={tierConfig}
+                                        isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                        onClick={() => onSeatSelect(seat)}
+                                    />
+                                ))}
+                            </div>
+
+                            {/* Gap and horizontal line after premium rows (after row B) */}
+                            {isLastPremiumRow && (
+                                <div className="mt-3 mb-2">
+                                    <div className="h-[1px] bg-gradient-to-r from-transparent via-red-400 to-transparent opacity-60" />
+                                    <div className="text-center mt-1">
+                                        <span className="text-[9px] uppercase tracking-widest text-red-400 font-semibold">
+                                            Premium Section
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    // Tier zone backgrounds per section
+    const tierZones = [
+        { rows: rows.slice(0, 2), tier: tierConfig.find(t => t.id === 'platinum') },
+        { rows: rows.slice(2, 5), tier: tierConfig.find(t => t.id === 'gold') },
+        { rows: rows.slice(5, 10), tier: tierConfig.find(t => t.id === 'silver') },
+        { rows: rows.slice(10, 16), tier: tierConfig.find(t => t.id === 'bronze') }
     ];
 
     return (
-        <div className="w-full max-w-4xl mx-auto">
+        <div className="w-full max-w-6xl mx-auto">
             {/* Stage indicator */}
-            <div className="relative mb-8">
-                <div className="w-2/3 mx-auto py-4 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 rounded-b-[100px] text-center shadow-lg">
-                    <span className="text-sm font-bold text-black uppercase tracking-[0.3em]">Stage</span>
+            <div className="relative mb-6">
+                <div className="w-1/2 mx-auto py-3 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 rounded-b-[80px] text-center shadow-lg">
+                    <span className="text-xs font-bold text-black uppercase tracking-[0.3em]">Stage</span>
                 </div>
-                {/* Stage glow effect */}
-                <div className="absolute inset-x-0 -bottom-4 h-8 bg-gradient-to-b from-gold-200/30 to-transparent rounded-full blur-md" />
+                <div className="absolute inset-x-0 -bottom-3 h-6 bg-gradient-to-b from-gold-200/30 to-transparent rounded-full blur-md" />
             </div>
 
-            {/* Curved seat layout */}
-            <div className="relative px-8">
-                {/* Tier section backgrounds */}
-                {tierBoundaries.map((boundary, idx) => {
-                    const startRow = rows.indexOf(boundary.rows[0]);
-                    const endRow = rows.indexOf(boundary.rows[boundary.rows.length - 1]);
-                    const topOffset = (startRow / rows.length) * 100;
-                    const height = ((endRow - startRow + 1) / rows.length) * 100;
-
-                    return (
-                        <div
-                            key={boundary.tier?.id}
-                            className="absolute left-4 right-4 rounded-lg opacity-10 pointer-events-none -z-10"
-                            style={{
-                                backgroundColor: boundary.tier?.color,
-                                top: `${topOffset}%`,
-                                height: `${height}%`,
-                            }}
-                        />
-                    );
-                })}
-
-                {/* Seat rows */}
-                <div className="flex flex-col gap-2">
-                    {seatsByRow.map((rowSeats, idx) => {
-                        const tier = tierConfig.find(t => t.id === rowSeats[0]?.tier);
-                        // Check if this is the first row of a tier zone
-                        const isFirstOfTier = idx === 0 ||
-                            seatsByRow[idx - 1]?.[0]?.tier !== rowSeats[0]?.tier;
+            {/* 3-Section Layout */}
+            <div className="relative bg-gray-50 rounded-2xl p-4 border border-gray-200 shadow-lg overflow-x-auto">
+                {/* Tier zone color backgrounds */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                    {tierZones.map((zone, idx) => {
+                        const startRow = rows.indexOf(zone.rows[0]);
+                        const endRow = rows.indexOf(zone.rows[zone.rows.length - 1]);
+                        const topPercent = (startRow / 16) * 100;
+                        const heightPercent = ((endRow - startRow + 1) / 16) * 100;
 
                         return (
-                            <div key={rows[idx]}>
-                                {/* Tier label */}
-                                {isFirstOfTier && tier && (
-                                    <div
-                                        className="text-center mb-1"
-                                        style={{ color: tier.color }}
-                                    >
-                                        <span className="text-xs font-semibold uppercase tracking-wider px-3 py-0.5 rounded-full"
-                                            style={{ backgroundColor: `${tier.color}20` }}
-                                        >
-                                            {tier.name}
-                                        </span>
-                                    </div>
-                                )}
-                                <CurvedRow
-                                    rowSeats={rowSeats}
-                                    rowIndex={idx}
-                                    totalRows={rows.length}
-                                    tierConfig={tierConfig}
-                                    selectedSeats={selectedSeats}
-                                    onSeatSelect={onSeatSelect}
-                                    tier={tier}
-                                />
-                            </div>
+                            <div
+                                key={zone.tier?.id || idx}
+                                className="absolute left-0 right-0"
+                                style={{
+                                    backgroundColor: zone.tier?.color,
+                                    opacity: 0.08,
+                                    top: `${topPercent}%`,
+                                    height: `${heightPercent}%`,
+                                }}
+                            />
                         );
                     })}
+                </div>
+
+                {/* 3 Sections side by side */}
+                <div className="flex justify-center gap-6 relative z-10">
+                    {/* Left Section */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Left</span>
+                        <div className="relative p-2 rounded-xl" style={{
+                            background: 'linear-gradient(135deg, rgba(6,182,212,0.05) 0%, rgba(59,130,246,0.05) 100%)',
+                            border: '1px solid rgba(6,182,212,0.2)'
+                        }}>
+                            <SectionBlock sectionId="left" sectionSeats={seatsBySection.left} />
+                        </div>
+                    </div>
+
+                    {/* Center Section */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Center</span>
+                        <div className="relative p-2 rounded-xl" style={{
+                            background: 'linear-gradient(135deg, rgba(168,85,247,0.05) 0%, rgba(239,68,68,0.05) 100%)',
+                            border: '1px solid rgba(168,85,247,0.2)'
+                        }}>
+                            <SectionBlock sectionId="center" sectionSeats={seatsBySection.center} />
+                        </div>
+                    </div>
+
+                    {/* Right Section */}
+                    <div className="flex flex-col items-center">
+                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Right</span>
+                        <div className="relative p-2 rounded-xl" style={{
+                            background: 'linear-gradient(135deg, rgba(59,130,246,0.05) 0%, rgba(6,182,212,0.05) 100%)',
+                            border: '1px solid rgba(6,182,212,0.2)'
+                        }}>
+                            <SectionBlock sectionId="right" sectionSeats={seatsBySection.right} />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row labels on the right */}
+                <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center py-12">
+                    {rows.map((row, idx) => (
+                        <div
+                            key={row}
+                            className="text-[10px] font-bold text-gray-400 h-[22px] flex items-center"
+                        >
+                            {row}
+                        </div>
+                    ))}
                 </div>
             </div>
 
