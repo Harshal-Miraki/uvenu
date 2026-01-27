@@ -80,7 +80,7 @@ export function generateTheaterSeats(tierLayout: 'ascending' | 'descending' = 'a
     return seats;
 }
 
-// Individual seat component
+// Individual seat component - Exam Hall Paper Style
 function SeatButton({
     seat,
     tierConfig,
@@ -95,35 +95,22 @@ function SeatButton({
     const tier = tierConfig.find(t => t.id === seat.tier);
     const isSold = seat.status === 'sold';
 
-    // Calculate background color based on state
-    const getBackgroundColor = () => {
-        if (isSold) return '#9CA3AF'; // Gray for sold
-        if (isSelected) return tier?.color || '#3B82F6'; // Full tier color when selected
-        // Show lighter version of tier color for available seats
-        return tier?.color ? `${tier.color}40` : '#E5E7EB'; // 40 = 25% opacity hex
-    };
-
-    // Border color for better visibility
-    const getBorderColor = () => {
-        if (isSold) return '#6B7280';
-        return tier?.color || '#9CA3AF';
-    };
-
     return (
         <button
             disabled={isSold}
             onClick={onClick}
             className={cn(
-                "w-5 h-5 md:w-6 md:h-6 rounded-md transition-all duration-150 shrink-0 border-2",
-                isSold && "cursor-not-allowed opacity-60",
-                !isSold && !isSelected && "hover:scale-110 hover:shadow-md cursor-pointer",
-                isSelected && "scale-110 shadow-lg ring-2 ring-white ring-offset-1"
+                "w-4 h-4 md:w-5 md:h-5 transition-all duration-100 shrink-0",
+                // Exam hall paper style - simple squares
+                isSold && "cursor-not-allowed",
+                !isSold && !isSelected && "hover:bg-blue-100 cursor-pointer",
+                isSelected && "ring-2 ring-blue-600 ring-offset-1"
             )}
             style={{
-                backgroundColor: getBackgroundColor(),
-                borderColor: getBorderColor(),
+                backgroundColor: isSold ? '#D1D5DB' : isSelected ? '#93C5FD' : '#F3F4F6',
+                border: `1px solid ${isSold ? '#9CA3AF' : isSelected ? '#2563EB' : '#374151'}`,
             }}
-            title={isSold ? 'Sold' : `Row ${seat.row}, Seat ${seat.number} - ${tier?.name} - ${tier?.price} QAR`}
+            title={isSold ? 'Occupied' : `Row ${seat.row}, Seat ${seat.number}`}
         />
     );
 }
@@ -251,7 +238,7 @@ export default function SeatMap({
         return tierConfig.find(t => t.id === 'bronze');
     };
 
-    // Section component with curved rows
+    // Section component - Exam Hall Paper Style
     const SectionBlock = ({
         sectionId,
         sectionSeats
@@ -260,109 +247,133 @@ export default function SeatMap({
         sectionSeats: Record<string, Seat[]>;
     }) => {
         const premiumRows = ['A', 'B'];
-        const regularRows = rows.filter(r => !premiumRows.includes(r)); // C through P
+        const regularRows = rows.filter(r => !premiumRows.includes(r));
 
-        // Get seat count for premium section width calculation
+        // Get seat count for width calculation
         const seatCount = sectionId === 'center' ? 12 : 10;
-        const seatSize = 24; // w-6 = 24px
+        const seatSize = 20; // w-5 = 20px
         const seatGap = 2;
         const rowWidth = seatCount * seatSize + (seatCount - 1) * seatGap;
 
         return (
             <div className="flex flex-col">
-                {/* PREMIUM SECTION BOX - Separate container with radial arc */}
+                {/* ARC ROWS (First 2 rows) - Hand-drawn arc style */}
                 <div
-                    className="relative mb-3 p-3 pt-5 rounded-xl border-2 border-red-300 shadow-lg"
+                    className="relative mb-2 pb-2"
                     style={{
-                        background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)',
-                        boxShadow: '0 4px 20px rgba(239,68,68,0.15)'
+                        height: '58px',
+                        borderBottom: '1px dashed #374151'
                     }}
                 >
-                    {/* Premium Badge */}
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-md z-10">
-                        Premium
-                    </div>
+                    {premiumRows.map((row, rowIndex) => {
+                        const rowSeats = sectionSeats[row] || [];
+                        const arcRadius = 200;
+                        const arcSpan = 40; // Wider arc for more visible curve
 
-                    {/* Premium Rows Container */}
-                    <div className="relative" style={{ height: '70px' }}>
-                        {premiumRows.map((row, rowIndex) => {
-                            const rowSeats = sectionSeats[row] || [];
-                            const arcRadius = 250;
-                            const arcSpan = 35;
+                        return (
+                            <div
+                                key={`${sectionId}-arc-${row}`}
+                                className="absolute left-1/2 -translate-x-1/2"
+                                style={{
+                                    width: `${rowWidth}px`,
+                                    top: `${rowIndex * 26}px`
+                                }}
+                            >
+                                <div className="relative h-5 flex justify-center">
+                                    {rowSeats.map((seat, seatIndex) => {
+                                        const totalSeats = rowSeats.length;
+                                        const arcSpan = 45; // Wider arc for more visible curve
+                                        const arcRadius = 180;
 
-                            return (
-                                <div
-                                    key={`${sectionId}-premium-${row}`}
-                                    className="absolute left-1/2 -translate-x-1/2"
-                                    style={{
-                                        width: `${rowWidth}px`,
-                                        top: `${rowIndex * 32}px`
-                                    }}
-                                >
-                                    <div className="relative h-7 flex justify-center">
-                                        {rowSeats.map((seat, seatIndex) => {
-                                            const totalSeats = rowSeats.length;
+                                        // Calculate position ratio (0 to 1)
+                                        const posRatio = seatIndex / (totalSeats - 1);
+
+                                        // Different arc direction based on section
+                                        let yOffset = 0;
+                                        if (sectionId === 'left') {
+                                            // Left section: curve up on the left (seats go UP as you move left)
+                                            yOffset = -((1 - posRatio) * (1 - posRatio) * 12);
+                                        } else if (sectionId === 'right') {
+                                            // Right section: curve up on the right (seats go UP as you move right)
+                                            yOffset = -(posRatio * posRatio * 12);
+                                        } else {
+                                            // Center section: symmetric arc (edges go UP, center stays lower)
                                             const startAngle = -arcSpan / 2;
                                             const angleStep = arcSpan / (totalSeats - 1);
                                             const angle = startAngle + (seatIndex * angleStep);
                                             const angleRad = angle * (Math.PI / 180);
-                                            const yOffset = (1 - Math.cos(angleRad)) * (arcRadius * 0.08);
-                                            const xPos = (seatIndex / (totalSeats - 1)) * (rowWidth - seatSize);
+                                            yOffset = -((1 - Math.cos(angleRad)) * (arcRadius * 0.1));
+                                        }
 
-                                            return (
-                                                <div
-                                                    key={seat.id}
-                                                    className="absolute"
-                                                    style={{
-                                                        left: `${xPos}px`,
-                                                        top: `${yOffset}px`,
-                                                    }}
-                                                >
-                                                    <SeatButton
-                                                        seat={seat}
-                                                        tierConfig={tierConfig}
-                                                        isSelected={selectedSeats.some(s => s.id === seat.id)}
-                                                        onClick={() => onSeatSelect(seat)}
-                                                    />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                        const xPos = (seatIndex / (totalSeats - 1)) * (rowWidth - seatSize);
+
+                                        return (
+                                            <div
+                                                key={seat.id}
+                                                className="absolute"
+                                                style={{
+                                                    left: `${xPos}px`,
+                                                    top: `${yOffset}px`,
+                                                }}
+                                            >
+                                                <SeatButton
+                                                    seat={seat}
+                                                    tierConfig={tierConfig}
+                                                    isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                                    onClick={() => onSeatSelect(seat)}
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
-                    </div>
+                                {/* Row number annotation */}
+                                {sectionId === 'center' && (
+                                    <span className="absolute -right-6 top-0 text-[9px] text-gray-500 font-mono">
+                                        {row}
+                                    </span>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
-                {/* REGULAR SECTION - With slight radial curve for left/right */}
-                <div className="flex flex-col gap-[2px]">
+                {/* STRAIGHT ROWS - Standard grid with group dividers */}
+                <div className="flex flex-col gap-[3px]">
                     {regularRows.map((row, rowIdx) => {
                         const rowSeats = sectionSeats[row] || [];
 
-                        // Calculate curve for left/right sections (center stays straight)
-                        // Curve is more pronounced in the middle rows, less at top and bottom
-                        const curveIntensity = sectionId === 'center' ? 0 :
-                            Math.sin((rowIdx / (regularRows.length - 1)) * Math.PI) * 8;
+                        // Group definitions for divider lines
+                        // Group 1: Row C (index 0) - 1 row
+                        // Group 2: Rows D,E,F (index 1,2,3) - 3 rows
+                        // Group 3: Row G onwards (index 4+)
+                        const isEndOfGroup1 = rowIdx === 0; // After row C
+                        const isEndOfGroup2 = rowIdx === 3; // After row F
 
                         return (
-                            <div
-                                key={`${sectionId}-${row}`}
-                                className="flex justify-center gap-[2px]"
-                                style={{
-                                    // Left section curves inward on right, right section curves inward on left
-                                    paddingLeft: sectionId === 'right' ? `${curveIntensity}px` : 0,
-                                    paddingRight: sectionId === 'left' ? `${curveIntensity}px` : 0,
-                                }}
-                            >
-                                {rowSeats.map(seat => (
-                                    <SeatButton
-                                        key={seat.id}
-                                        seat={seat}
-                                        tierConfig={tierConfig}
-                                        isSelected={selectedSeats.some(s => s.id === seat.id)}
-                                        onClick={() => onSeatSelect(seat)}
-                                    />
-                                ))}
+                            <div key={`${sectionId}-${row}-wrapper`}>
+                                <div
+                                    className="flex justify-center gap-1 relative"
+                                >
+                                    {rowSeats.map(seat => (
+                                        <SeatButton
+                                            key={seat.id}
+                                            seat={seat}
+                                            tierConfig={tierConfig}
+                                            isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                            onClick={() => onSeatSelect(seat)}
+                                        />
+                                    ))}
+                                    {/* Row number on center section only */}
+                                    {sectionId === 'center' && (rowIdx === 0 || rowIdx === 3 || rowIdx === 7 || rowIdx === 11) && (
+                                        <span className="absolute -right-6 top-0 text-[9px] text-gray-500 font-mono">
+                                            {row}
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Divider line after Group 1 and Group 2 */}
+                                {(isEndOfGroup1 || isEndOfGroup2) && (
+                                    <div className="my-2 h-px bg-gray-400" style={{ opacity: 0.6 }} />
+                                )}
                             </div>
                         );
                     })}
@@ -380,64 +391,91 @@ export default function SeatMap({
     ];
 
     return (
-        <div className="w-full max-w-6xl mx-auto">
-            {/* Stage indicator */}
-            <div className="relative mb-6">
-                <div className="w-1/2 mx-auto py-3 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 rounded-b-[80px] text-center shadow-lg">
-                    <span className="text-xs font-bold text-black uppercase tracking-[0.3em]">Stage</span>
-                </div>
-                <div className="absolute inset-x-0 -bottom-3 h-6 bg-gradient-to-b from-gold-200/30 to-transparent rounded-full blur-md" />
-            </div>
-
-            {/* 3-Section Layout */}
-            <div className="relative bg-gray-50 rounded-2xl p-4 border border-gray-200 shadow-lg overflow-x-auto">
-                {/* Tier zone color backgrounds */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-                    {tierZones.map((zone, idx) => {
-                        const startRow = rows.indexOf(zone.rows[0]);
-                        const endRow = rows.indexOf(zone.rows[zone.rows.length - 1]);
-                        const topPercent = (startRow / 16) * 100;
-                        const heightPercent = ((endRow - startRow + 1) / 16) * 100;
-
-                        return (
-                            <div
-                                key={zone.tier?.id || idx}
-                                className="absolute left-0 right-0"
-                                style={{
-                                    backgroundColor: zone.tier?.color,
-                                    opacity: 0.08,
-                                    top: `${topPercent}%`,
-                                    height: `${heightPercent}%`,
-                                }}
-                            />
-                        );
-                    })}
+        <div className="w-full max-w-4xl mx-auto">
+            {/* Paper-style container */}
+            <div
+                className="relative p-6 border-2 border-gray-800"
+                style={{
+                    backgroundColor: '#FAFAFA',
+                    boxShadow: 'inset 0 0 30px rgba(0,0,0,0.03)',
+                    fontFamily: '"Courier New", monospace'
+                }}
+            >
+                {/* Title/Header - Hand-drawn style */}
+                <div className="text-center mb-4 pb-3" style={{ borderBottom: '2px solid #1F2937' }}>
+                    <h2 className="text-lg font-bold text-gray-800 tracking-wide" style={{ fontFamily: 'Georgia, serif' }}>
+                        SEATING ARRANGEMENT
+                    </h2>
+                    <p className="text-[10px] text-gray-500 mt-1 tracking-wider">VENUE FLOOR PLAN</p>
                 </div>
 
-                {/* 3 Sections side by side */}
-                <div className="flex justify-center gap-6 relative z-10">
+                {/* Stage indicator - Simple pen style */}
+                <div className="relative mb-6">
+                    <div
+                        className="w-2/3 mx-auto py-2 text-center border-2 border-gray-800"
+                        style={{
+                            borderRadius: '0 0 60px 60px',
+                            backgroundColor: '#E5E7EB'
+                        }}
+                    >
+                        <span className="text-xs font-bold text-gray-700 uppercase tracking-[0.2em]">STAGE</span>
+                    </div>
+                </div>
+
+                {/* Main seating area with aisles */}
+                <div className="flex justify-center gap-4 relative">
+                    {/* Left margin annotation */}
+                    <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 -rotate-90 whitespace-nowrap">
+                        ← EXIT
+                    </div>
+
                     {/* Left Section */}
-                    <div className="flex flex-col items-center">
-                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Left</span>
+                    <div className="flex flex-col items-center border border-gray-300 p-2 bg-white">
+                        <span className="text-[10px] font-mono text-gray-500 mb-1">BLOCK A</span>
                         <SectionBlock sectionId="left" sectionSeats={seatsBySection.left} />
                     </div>
 
+                    {/* Vertical Aisle */}
+                    <div className="w-4 flex items-center justify-center">
+                        <div className="h-full w-px bg-gray-400" style={{ minHeight: '300px' }}></div>
+                    </div>
+
                     {/* Center Section */}
-                    <div className="flex flex-col items-center">
-                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Center</span>
+                    <div className="flex flex-col items-center border border-gray-300 p-2 bg-white">
+                        <span className="text-[10px] font-mono text-gray-500 mb-1">BLOCK B</span>
                         <SectionBlock sectionId="center" sectionSeats={seatsBySection.center} />
                     </div>
 
+                    {/* Vertical Aisle */}
+                    <div className="w-4 flex items-center justify-center">
+                        <div className="h-full w-px bg-gray-400" style={{ minHeight: '300px' }}></div>
+                    </div>
+
                     {/* Right Section */}
-                    <div className="flex flex-col items-center">
-                        <span className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Right</span>
+                    <div className="flex flex-col items-center border border-gray-300 p-2 bg-white">
+                        <span className="text-[10px] font-mono text-gray-500 mb-1">BLOCK C</span>
                         <SectionBlock sectionId="right" sectionSeats={seatsBySection.right} />
                     </div>
-                </div>
-            </div>
 
-            {/* Legend */}
-            <SeatLegend tierConfig={tierConfig} discountPercentage={discountPercentage} />
+                    {/* Right margin annotation */}
+                    <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 rotate-90 whitespace-nowrap">
+                        EXIT →
+                    </div>
+                </div>
+
+                {/* Bottom annotations */}
+                <div className="mt-6 pt-3 flex justify-between items-center text-[9px] text-gray-500" style={{ borderTop: '1px dashed #9CA3AF' }}>
+                    <span>Total Capacity: {seats.length}</span>
+                    <span className="text-[8px]">□ Available  ▣ Selected  ■ Occupied</span>
+                    <span>Arc Rows: A, B</span>
+                </div>
+
+                {/* Corner decorations - hand-drawn style */}
+                <div className="absolute top-2 left-2 w-4 h-4 border-l-2 border-t-2 border-gray-400"></div>
+                <div className="absolute top-2 right-2 w-4 h-4 border-r-2 border-t-2 border-gray-400"></div>
+                <div className="absolute bottom-2 left-2 w-4 h-4 border-l-2 border-b-2 border-gray-400"></div>
+                <div className="absolute bottom-2 right-2 w-4 h-4 border-r-2 border-b-2 border-gray-400"></div>
+            </div>
         </div>
     );
 }
