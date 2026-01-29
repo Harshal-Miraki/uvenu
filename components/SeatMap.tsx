@@ -261,8 +261,7 @@ export default function SeatMap({
                 <div
                     className="relative mb-2 pb-2"
                     style={{
-                        height: '58px',
-                        borderBottom: '1px dashed #374151'
+                        height: '58px'
                     }}
                 >
                     {premiumRows.map((row, rowIndex) => {
@@ -337,46 +336,90 @@ export default function SeatMap({
                     })}
                 </div>
 
-                {/* STRAIGHT ROWS - Standard grid with group dividers */}
+                {/* GOLDEN SECTION - Dotted line differentiation like arc rows */}
+                <div className="relative mb-2 pb-2">
+                    <div className="flex flex-col gap-[3px]">
+                        {(() => {
+                            // Golden section rows differ by block
+                            // Block A (left): 1 row - Row C
+                            // Block B (center): 3 rows - Rows C, D, E
+                            // Block C (right): 1 row - Row C
+                            const goldenRows = sectionId === 'center'
+                                ? ['C', 'D', 'E']
+                                : ['C'];
+
+                            return goldenRows.map((row, rowIdx) => {
+                                const rowSeats = sectionSeats[row] || [];
+                                return (
+                                    <div
+                                        key={`${sectionId}-gold-${row}`}
+                                        className="flex justify-center gap-1 relative"
+                                    >
+                                        {rowSeats.map(seat => (
+                                            <SeatButton
+                                                key={seat.id}
+                                                seat={seat}
+                                                tierConfig={tierConfig}
+                                                isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                                onClick={() => onSeatSelect(seat)}
+                                            />
+                                        ))}
+                                        {sectionId === 'center' && (
+                                            <span className="absolute -right-6 top-0 text-[9px] text-amber-600 font-mono">
+                                                {row}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            });
+                        })()}
+                    </div>
+                </div>
+
+                {/* REMAINING ROWS - Standard grid */}
                 <div className="flex flex-col gap-[3px]">
-                    {regularRows.map((row, rowIdx) => {
-                        const rowSeats = sectionSeats[row] || [];
+                    {(() => {
+                        // Remaining rows after golden section
+                        // Block A (left): D onwards (skipped C)
+                        // Block B (center): F onwards (skipped C,D,E)
+                        // Block C (right): D onwards (skipped C)
+                        const remainingRows = sectionId === 'center'
+                            ? regularRows.filter(r => !['C', 'D', 'E'].includes(r))
+                            : regularRows.filter(r => r !== 'C');
 
-                        // Group definitions for divider lines
-                        // Group 1: Row C (index 0) - 1 row
-                        // Group 2: Rows D,E,F (index 1,2,3) - 3 rows
-                        // Group 3: Row G onwards (index 4+)
-                        const isEndOfGroup1 = rowIdx === 0; // After row C
-                        const isEndOfGroup2 = rowIdx === 3; // After row F
+                        return remainingRows.map((row, rowIdx) => {
+                            const rowSeats = sectionSeats[row] || [];
 
-                        return (
-                            <div key={`${sectionId}-${row}-wrapper`}>
-                                <div
-                                    className="flex justify-center gap-1 relative"
-                                >
-                                    {rowSeats.map(seat => (
-                                        <SeatButton
-                                            key={seat.id}
-                                            seat={seat}
-                                            tierConfig={tierConfig}
-                                            isSelected={selectedSeats.some(s => s.id === seat.id)}
-                                            onClick={() => onSeatSelect(seat)}
-                                        />
-                                    ))}
-                                    {/* Row number on center section only */}
-                                    {sectionId === 'center' && (rowIdx === 0 || rowIdx === 3 || rowIdx === 7 || rowIdx === 11) && (
-                                        <span className="absolute -right-6 top-0 text-[9px] text-gray-500 font-mono">
-                                            {row}
-                                        </span>
+                            // Add divider after every 4 rows
+                            const showDivider = (rowIdx + 1) % 4 === 0 && rowIdx < remainingRows.length - 1;
+
+                            return (
+                                <div key={`${sectionId}-${row}-wrapper`}>
+                                    <div
+                                        className="flex justify-center gap-1 relative"
+                                    >
+                                        {rowSeats.map(seat => (
+                                            <SeatButton
+                                                key={seat.id}
+                                                seat={seat}
+                                                tierConfig={tierConfig}
+                                                isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                                onClick={() => onSeatSelect(seat)}
+                                            />
+                                        ))}
+                                        {sectionId === 'center' && (rowIdx === 3 || rowIdx === 7) && (
+                                            <span className="absolute -right-6 top-0 text-[9px] text-gray-500 font-mono">
+                                                {row}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {showDivider && (
+                                        <div className="my-2 h-px bg-gray-400" style={{ opacity: 0.4 }} />
                                     )}
                                 </div>
-                                {/* Divider line after Group 1 and Group 2 */}
-                                {(isEndOfGroup1 || isEndOfGroup2) && (
-                                    <div className="my-2 h-px bg-gray-400" style={{ opacity: 0.6 }} />
-                                )}
-                            </div>
-                        );
-                    })}
+                            );
+                        });
+                    })()}
                 </div>
             </div>
         );
@@ -428,6 +471,24 @@ export default function SeatMap({
                     <div className="absolute -left-2 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 -rotate-90 whitespace-nowrap">
                         ← EXIT
                     </div>
+
+                    {/* HORIZONTAL CONNECTING LINES - Span across all sections */}
+                    {/* Line after Arc Rows (A, B) */}
+                    <div
+                        className="absolute left-0 right-0 h-px"
+                        style={{
+                            top: '85px',
+                            borderTop: '1px dashed #374151'
+                        }}
+                    />
+                    {/* Line after Golden Section */}
+                    <div
+                        className="absolute left-0 right-0 h-px"
+                        style={{
+                            top: '160px',
+                            borderTop: '1px dashed #D4AF37'
+                        }}
+                    />
 
                     {/* Left Section */}
                     <div className="flex flex-col items-center border border-gray-300 p-2 bg-white">
