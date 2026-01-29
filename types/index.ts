@@ -12,7 +12,7 @@ export interface User {
 export type SeatCategory = 'VIP' | 'Premium' | 'Standard';
 
 // New: 4-tier pricing system for seat map
-export type SeatTier = 'platinum' | 'gold' | 'silver' | 'bronze';
+export type SeatTier = 'platinum' | 'gold' | 'silver' | 'bronze' | 'premium' | 'normal';
 
 // Tier layout configuration
 export type TierLayout = 'ascending' | 'descending';

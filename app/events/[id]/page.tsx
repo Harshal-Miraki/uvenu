@@ -7,48 +7,26 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Calendar, Clock, MapPin, ChevronLeft, ShoppingCart, X } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
-import { Seat, TierConfig } from "@/types";
-import { cn } from "@/lib/utils";
-import SeatMap, { generateTheaterSeats, getTierPricing, DEFAULT_TIER_CONFIG } from "@/components/SeatMap";
+import { useState, useEffect } from "react";
+import { TierConfig, SeatTier } from "@/types";
+import SVGSeatMap, { SVG_TIER_CONFIG } from "@/components/SVGSeatMap";
+
+// Selected seat with tier info
+interface SelectedSeatInfo {
+    id: string;
+    tier: SeatTier;
+}
 
 export default function EventDetailsPage() {
     const { id } = useParams();
     const router = useRouter();
     const { events, addToCart } = useStore();
     const { t } = useLanguage();
-    const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
-    const [tierConfig, setTierConfig] = useState<TierConfig[]>(DEFAULT_TIER_CONFIG);
+    const [selectedSeats, setSelectedSeats] = useState<SelectedSeatInfo[]>([]);
+    const [tierConfig] = useState<TierConfig[]>(SVG_TIER_CONFIG);
+    const [soldSeats] = useState<string[]>([]); // Could be loaded from API
 
     const event = events.find(e => e.id === id);
-
-    // Load tier pricing from storage and listen for changes
-    useEffect(() => {
-        // Initial load
-        const loadPricing = async () => {
-            const pricing = await getTierPricing();
-            setTierConfig(pricing);
-        };
-        loadPricing();
-
-        // Listen for custom event from same-page updates (admin panel)
-        const handlePricingChanged = (e: Event) => {
-            const customEvent = e as CustomEvent<TierConfig[]>;
-            setTierConfig(customEvent.detail);
-        };
-
-        window.addEventListener('tierPricingChanged', handlePricingChanged);
-
-        return () => {
-            window.removeEventListener('tierPricingChanged', handlePricingChanged);
-        };
-    }, []);
-
-    // Generate or use existing seat map
-    const seats = useMemo(() => {
-        if (event?.seatMap) return event.seatMap;
-        return generateTheaterSeats(event?.tierLayout || 'ascending');
-    }, [event]);
 
     const discountPercentage = (event?.isEarlyBird || event?.isLastMinute) ? event.discountPercentage : 0;
 
@@ -64,25 +42,23 @@ export default function EventDetailsPage() {
     }
 
     // Calculate price for a seat with discount
-    const getSeatPrice = (seat: Seat): number => {
-        const tier = tierConfig.find(t => t.id === seat.tier);
-        if (!tier) return 0;
+    const getSeatPrice = (tier: SeatTier): number => {
+        const tierInfo = tierConfig.find(t => t.id === tier);
+        if (!tierInfo) return 0;
         const price = discountPercentage > 0
-            ? Math.round(tier.price * (1 - discountPercentage / 100))
-            : tier.price;
+            ? Math.round(tierInfo.price * (1 - discountPercentage / 100))
+            : tierInfo.price;
         return price;
     };
 
-    // Handle seat selection toggle
-    const handleSeatSelect = (seat: Seat) => {
-        if (seat.status === 'sold') return;
-
+    // Handle seat selection toggle from SVG
+    const handleSeatSelect = (seatId: string, tier: SeatTier) => {
         setSelectedSeats(prev => {
-            const isAlreadySelected = prev.some(s => s.id === seat.id);
+            const isAlreadySelected = prev.some(s => s.id === seatId);
             if (isAlreadySelected) {
-                return prev.filter(s => s.id !== seat.id);
+                return prev.filter(s => s.id !== seatId);
             } else {
-                return [...prev, seat];
+                return [...prev, { id: seatId, tier }];
             }
         });
     };
@@ -93,14 +69,18 @@ export default function EventDetailsPage() {
     };
 
     // Calculate total
-    const totalPrice = selectedSeats.reduce((sum, seat) => sum + getSeatPrice(seat), 0);
+    const totalPrice = selectedSeats.reduce((sum, seat) => sum + getSeatPrice(seat.tier), 0);
 
     const handleAddToCart = () => {
         if (selectedSeats.length === 0) return;
 
-        // Mark selected seats with their prices
-        const seatsWithPrices = selectedSeats.map(seat => ({
-            ...seat,
+        // Convert to cart format
+        const seatsForCart = selectedSeats.map(seat => ({
+            id: seat.id,
+            row: 'SVG',
+            number: 1,
+            section: 'center' as const,
+            tier: seat.tier,
             status: 'selected' as const
         }));
 
@@ -108,7 +88,7 @@ export default function EventDetailsPage() {
             eventId: event.id,
             eventTitle: event.title,
             eventDate: event.date,
-            seats: seatsWithPrices,
+            seats: seatsForCart,
             totalPrice: totalPrice
         });
 
@@ -158,11 +138,11 @@ export default function EventDetailsPage() {
                         <Card className="bg-white border-gray-200 shadow-sm">
                             <CardContent className="p-6">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">{t('eventDetails.selectSeats')}</h2>
-                                <SeatMap
-                                    seats={seats}
+                                <SVGSeatMap
                                     tierConfig={tierConfig}
                                     onSeatSelect={handleSeatSelect}
-                                    selectedSeats={selectedSeats}
+                                    selectedSeats={selectedSeats.map(s => s.id)}
+                                    soldSeats={soldSeats}
                                     discountPercentage={discountPercentage}
                                 />
                             </CardContent>
@@ -186,7 +166,7 @@ export default function EventDetailsPage() {
                                         <div className="max-h-60 overflow-y-auto space-y-2">
                                             {selectedSeats.map(seat => {
                                                 const tier = tierConfig.find(t => t.id === seat.tier);
-                                                const price = getSeatPrice(seat);
+                                                const price = getSeatPrice(seat.tier);
 
                                                 return (
                                                     <div
@@ -199,7 +179,7 @@ export default function EventDetailsPage() {
                                                                 style={{ backgroundColor: tier?.color }}
                                                             />
                                                             <span className="text-sm font-medium text-gray-900">
-                                                                {t('eventDetails.row')} {seat.row}, {t('eventDetails.seat')} {seat.number}
+                                                                {tier?.name} Seat
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -255,4 +235,3 @@ export default function EventDetailsPage() {
         </div>
     );
 }
-
