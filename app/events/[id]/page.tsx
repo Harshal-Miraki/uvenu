@@ -139,6 +139,7 @@ export default function EventDetailsPage() {
                             <CardContent className="p-6">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">{t('eventDetails.selectSeats')}</h2>
                                 <SVGSeatMap
+                                    eventId={event.id}
                                     tierConfig={tierConfig}
                                     onSeatSelect={handleSeatSelect}
                                     selectedSeats={selectedSeats.map(s => s.id)}

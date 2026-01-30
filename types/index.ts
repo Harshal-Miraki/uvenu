@@ -14,6 +14,15 @@ export type SeatCategory = 'VIP' | 'Premium' | 'Standard';
 // New: 4-tier pricing system for seat map
 export type SeatTier = 'platinum' | 'gold' | 'silver' | 'bronze' | 'premium' | 'normal';
 
+// SVG Tier boundaries configuration (Y positions for each tier boundary line)
+export interface TierBoundaries {
+    premium: number;   // Y value below which seats are Premium (default: 300)
+    gold: number;      // Y value below which seats are Golden (default: 450)
+    silver: number;    // Y value below which seats are Silver (default: 700)
+    bronze: number;    // Y value below which seats are Bronze (default: 1100)
+    // Seats with Y >= bronze are Normal
+}
+
 // Tier layout configuration
 export type TierLayout = 'ascending' | 'descending';
 

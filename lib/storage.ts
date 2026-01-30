@@ -12,7 +12,7 @@ import {
   where
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Event, Booking, TierConfig, SeatTier, UserRole, User } from "@/types";
+import { Event, Booking, TierConfig, SeatTier, UserRole, User, TierBoundaries } from "@/types";
 
 // Collection names
 const EVENTS_COLLECTION = "events";
@@ -20,8 +20,17 @@ const BOOKINGS_COLLECTION = "bookings";
 const USERS_COLLECTION = "users";
 const CONFIG_COLLECTION = "config";
 const TIER_PRICING_DOC = "tierPricing";
+const TIER_BOUNDARIES_COLLECTION = "tierBoundaries"; // Per-event tier boundaries
 const AUTH_KEY = "uvenu_auth"; // Keep auth in localStorage for simplicity
 const CURRENT_USER_KEY = "uvenu_current_user"; // Store current user data
+
+// Default tier boundaries (Y positions in SVG)
+const DEFAULT_TIER_BOUNDARIES: TierBoundaries = {
+  premium: 300,
+  gold: 450,
+  silver: 700,
+  bronze: 1100
+};
 
 // Default tier pricing configuration
 const DEFAULT_TIER_PRICING: TierConfig[] = [
@@ -419,6 +428,54 @@ export const storage = {
       }
     } catch (error) {
       console.error("Error resetting data:", error);
+    }
+  },
+
+  // Per-event tier boundaries for SVG seat map
+  getDefaultTierBoundaries: (): TierBoundaries => {
+    return { ...DEFAULT_TIER_BOUNDARIES };
+  },
+
+  getTierBoundaries: async (eventId: string): Promise<TierBoundaries> => {
+    try {
+      const boundariesRef = doc(db, TIER_BOUNDARIES_COLLECTION, eventId);
+      const boundariesSnap = await getDoc(boundariesRef);
+      
+      if (boundariesSnap.exists()) {
+        return boundariesSnap.data() as TierBoundaries;
+      }
+      
+      return { ...DEFAULT_TIER_BOUNDARIES };
+    } catch (error) {
+      console.error("Error getting tier boundaries:", error);
+      return { ...DEFAULT_TIER_BOUNDARIES };
+    }
+  },
+
+  saveTierBoundaries: async (eventId: string, boundaries: TierBoundaries): Promise<void> => {
+    try {
+      const boundariesRef = doc(db, TIER_BOUNDARIES_COLLECTION, eventId);
+      await setDoc(boundariesRef, boundaries);
+      
+      // Dispatch event for real-time updates
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tierBoundariesChanged', { 
+          detail: { eventId, boundaries } 
+        }));
+      }
+    } catch (error) {
+      console.error("Error saving tier boundaries:", error);
+    }
+  },
+
+  resetTierBoundaries: async (eventId: string): Promise<TierBoundaries> => {
+    try {
+      const boundariesRef = doc(db, TIER_BOUNDARIES_COLLECTION, eventId);
+      await setDoc(boundariesRef, DEFAULT_TIER_BOUNDARIES);
+      return { ...DEFAULT_TIER_BOUNDARIES };
+    } catch (error) {
+      console.error("Error resetting tier boundaries:", error);
+      return { ...DEFAULT_TIER_BOUNDARIES };
     }
   }
 };

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Seat, SeatTier, TierConfig } from '@/types';
+import { Seat, SeatTier, TierConfig, TierBoundaries } from '@/types';
+import { storage } from '@/lib/storage';
 
 // SVG-based Tier Configuration matching line colors in Uvenue_Seatmap.svg
 // Red line: Premium, Purple line: Golden, Blue line: Silver, Teal: Bronze, Black: Normal
@@ -13,33 +14,22 @@ export const SVG_TIER_CONFIG: TierConfig[] = [
     { id: 'normal', name: 'Normal', price: 300, color: '#000000' },      // Black
 ];
 
+// Default tier boundaries
+const DEFAULT_BOUNDARIES: TierBoundaries = {
+    premium: 300,
+    gold: 450,
+    silver: 700,
+    bronze: 1100
+};
+
 interface SVGSeatMapProps {
+    eventId?: string;  // Optional: if provided, loads event-specific boundaries
     tierConfig?: TierConfig[];
     onSeatSelect: (seatId: string, tier: SeatTier) => void;
     selectedSeats: string[];
     soldSeats?: string[];
     discountPercentage?: number;
 }
-
-// Define seat zones based on SVG Y coordinates
-// We analyze the SVG structure to determine which seats belong to which tier
-const getSeatTier = (rectElement: SVGRectElement): SeatTier => {
-    const y = parseFloat(rectElement.getAttribute('y') || '0');
-    const x = parseFloat(rectElement.getAttribute('x') || '0');
-
-    // Based on SVG analysis:
-    // Premium (Red line): y < 300 (first curved rows near stage)
-    // Golden (Purple line): 300 <= y < 450
-    // Silver (Blue line): 450 <= y < 700
-    // Bronze (Teal line): 700 <= y < 1100
-    // Normal (Black line): y >= 1100
-
-    if (y < 300) return 'premium';
-    if (y < 450) return 'gold';
-    if (y < 700) return 'silver';
-    if (y < 1100) return 'bronze';
-    return 'normal';
-};
 
 // Get tier color
 const getTierColor = (tier: SeatTier, tierConfig: TierConfig[]): string => {
@@ -48,6 +38,7 @@ const getTierColor = (tier: SeatTier, tierConfig: TierConfig[]): string => {
 };
 
 export default function SVGSeatMap({
+    eventId,
     tierConfig = SVG_TIER_CONFIG,
     onSeatSelect,
     selectedSeats,
@@ -57,6 +48,29 @@ export default function SVGSeatMap({
     const containerRef = useRef<HTMLDivElement>(null);
     const [svgContent, setSvgContent] = useState<string>('');
     const [hoveredSeat, setHoveredSeat] = useState<string | null>(null);
+    const [boundaries, setBoundaries] = useState<TierBoundaries>(DEFAULT_BOUNDARIES);
+
+    // Load event-specific boundaries if eventId is provided
+    useEffect(() => {
+        if (eventId) {
+            storage.getTierBoundaries(eventId).then(b => {
+                setBoundaries(b);
+            });
+        } else {
+            setBoundaries(DEFAULT_BOUNDARIES);
+        }
+    }, [eventId]);
+
+    // Define seat tier based on configurable Y boundaries
+    const getSeatTier = (rectElement: SVGRectElement): SeatTier => {
+        const y = parseFloat(rectElement.getAttribute('y') || '0');
+
+        if (y < boundaries.premium) return 'premium';
+        if (y < boundaries.gold) return 'gold';
+        if (y < boundaries.silver) return 'silver';
+        if (y < boundaries.bronze) return 'bronze';
+        return 'normal';
+    };
 
     // Load the SVG file
     useEffect(() => {
@@ -174,7 +188,7 @@ export default function SVGSeatMap({
         if (existingLegend) existingLegend.remove();
         container.appendChild(legendContainer);
 
-    }, [svgContent, selectedSeats, soldSeats, hoveredSeat, tierConfig, discountPercentage, onSeatSelect]);
+    }, [svgContent, selectedSeats, soldSeats, hoveredSeat, tierConfig, discountPercentage, onSeatSelect, boundaries]);
 
     return (
         <div className="w-full max-w-5xl mx-auto">

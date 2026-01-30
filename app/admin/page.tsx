@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { Booking } from "@/types";
-import { DollarSign, Ticket, Calendar, TrendingUp } from "lucide-react";
+import { DollarSign, Ticket, Calendar, TrendingUp, MapPin, Settings, LayoutGrid, Plus, ClipboardList } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminDashboard() {
     const { events } = useStore();
@@ -79,6 +80,55 @@ export default function AdminDashboard() {
                             <p className="text-xs text-gray-500">+1.2% this week</p>
                         </CardContent>
                     </Card> */}
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                    <Link href="/admin/seatmap-editor" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <MapPin className="w-8 h-8 mx-auto mb-2 text-red-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Seat Map Editor</div>
+                                <p className="text-xs text-gray-500">Edit tier boundaries</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    <Link href="/admin/manage-pricing" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Manage Pricing</div>
+                                <p className="text-xs text-gray-500">Set tier prices</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    <Link href="/admin/manage-layout" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <LayoutGrid className="w-8 h-8 mx-auto mb-2 text-purple-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Tier Layout</div>
+                                <p className="text-xs text-gray-500">Configure layout</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    <Link href="/admin/bookings" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <ClipboardList className="w-8 h-8 mx-auto mb-2 text-blue-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Bookings</div>
+                                <p className="text-xs text-gray-500">View all bookings</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    <Link href="/admin/create-event" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <Plus className="w-8 h-8 mx-auto mb-2 text-gold-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Create Event</div>
+                                <p className="text-xs text-gray-500">Add new event</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
                 </div>
 
                 <Card className="bg-white border-charcoal-500 shadow-sm">
