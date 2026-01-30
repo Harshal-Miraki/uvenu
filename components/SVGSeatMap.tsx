@@ -51,7 +51,7 @@ const GOLD_BOUNDARY = {
 const SILVER_BOUNDARY = {
     leftEdge: 620,      // Y at X=105 (Silver section on left side)
     leftSectionEnd: 740, // Y at X=548
-    centerStart: 740,   // Y at X=548 (Silver section in center)
+    centerStart: 900,   // Y at X=548 (Silver section in center)
     centerEnd: 900,     // Y at X=1119
     rightSectionStart: 740,
     rightEdge: 620      // Y at X=1564
