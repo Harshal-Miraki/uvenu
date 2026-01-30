@@ -110,20 +110,29 @@ export default function SVGSeatMap({
             // Store original fill for reset
             const originalFill = rectEl.getAttribute('fill') || '#D9D9D9';
 
+            // Get the tier color for this seat
+            const tierColor = getTierColor(tier, tierConfig);
+
             // Apply tier-based styling
+            // Seats are colored by their tier by default
+            // Selected seats turn gray to indicate reservation
+            // Sold seats are also gray but with reduced opacity
             if (isSold) {
                 rectEl.setAttribute('fill', '#9CA3AF');
                 rectEl.style.cursor = 'not-allowed';
                 rectEl.style.opacity = '0.5';
             } else if (isSelected) {
-                rectEl.setAttribute('fill', '#3B82F6');
+                // Selected/reserved seats turn gray
+                rectEl.setAttribute('fill', '#9CA3AF');
                 rectEl.style.cursor = 'pointer';
-                rectEl.setAttribute('stroke', '#1D4ED8');
+                rectEl.setAttribute('stroke', '#6B7280');
                 rectEl.setAttribute('stroke-width', '2');
+                rectEl.style.opacity = '0.8';
             } else {
-                // Show tier color on hover, otherwise show default
-                rectEl.setAttribute('fill', hoveredSeat === seatId ? getTierColor(tier, tierConfig) : '#D9D9D9');
+                // Show tier color by default
+                rectEl.setAttribute('fill', tierColor);
                 rectEl.style.cursor = 'pointer';
+                rectEl.style.opacity = '1';
             }
 
             // Add interactivity
@@ -132,18 +141,22 @@ export default function SVGSeatMap({
             // Mouse events
             rectEl.onmouseenter = () => {
                 if (!isSold && !isSelected) {
-                    rectEl.setAttribute('fill', getTierColor(tier, tierConfig));
-                    rectEl.setAttribute('stroke', '#374151');
-                    rectEl.setAttribute('stroke-width', '1.5');
+                    // On hover, make the seat brighter/highlighted
+                    rectEl.setAttribute('fill', tierColor);
+                    rectEl.setAttribute('stroke', '#FFFFFF');
+                    rectEl.setAttribute('stroke-width', '2');
+                    rectEl.style.filter = 'brightness(1.2)';
                 }
                 setHoveredSeat(seatId);
             };
 
             rectEl.onmouseleave = () => {
                 if (!isSold && !isSelected) {
-                    rectEl.setAttribute('fill', '#D9D9D9');
+                    // Return to tier color
+                    rectEl.setAttribute('fill', tierColor);
                     rectEl.removeAttribute('stroke');
                     rectEl.removeAttribute('stroke-width');
+                    rectEl.style.filter = 'none';
                 }
                 setHoveredSeat(null);
             };
@@ -177,8 +190,8 @@ export default function SVGSeatMap({
                     <span style="font-size: 14px; color: #6B7280;">Sold</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 20px; height: 20px; background: #3B82F6; border-radius: 4px;"></div>
-                    <span style="font-size: 14px; color: #6B7280;">Selected</span>
+                    <div style="width: 20px; height: 20px; background: #9CA3AF; border-radius: 4px; opacity: 0.8;"></div>
+                    <span style="font-size: 14px; color: #6B7280;">Reserved</span>
                 </div>
             </div>
         `;
