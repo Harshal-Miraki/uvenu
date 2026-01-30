@@ -22,61 +22,53 @@ const RIGHT_EDGE = 1564;
 
 // Tier boundary line definitions from the actual SVG
 // Each tier boundary is defined by its Y position at different X positions
-// Format: { leftEdge, leftSection, center, rightSection, rightEdge }
+// Format: { leftEdge, leftSectionEnd, centerStart, centerEnd, rightSectionStart, rightEdge }
+// Based on user's hand-drawn diagram showing exact tier zones
 
-// Premium/Gold boundary (Red curved path - approximated as linear for sections)
-// path at center Y≈233, at left edge Y≈113, at right edge Y≈106
+// Premium/Gold boundary (Red line - 2 rows closest to stage)
 const PREMIUM_BOUNDARY = {
-    leftEdge: 113,      // Y at X=105
-    leftSectionEnd: 260, // Y at X=548 (approximated from path curve)
-    centerStart: 260,   // Y at X=548
-    centerEnd: 260,     // Y at X=1119
-    rightSectionStart: 260,
-    rightEdge: 106      // Y at X=1564
+    leftEdge: 280,      // Y at X=105 (2 rows on left side)
+    leftSectionEnd: 350, // Y at X=548
+    centerStart: 350,   // Y at X=548 (2 rows in center)
+    centerEnd: 350,     // Y at X=1119
+    rightSectionStart: 350,
+    rightEdge: 280      // Y at X=1564 (2 rows on right side)
 };
 
-// Gold/Silver boundary (Purple path + horizontal line at Y≈369 center, side lines slope down)
+// Gold/Silver boundary (BLUE line the user drew - Gold section)
+// Center has 4 rows of Gold, sides have 1-2 rows
 const GOLD_BOUNDARY = {
-    leftEdge: 248,      // Y at X=105 (from purple path)
-    leftSectionEnd: 390, // Y at X=548
-    centerStart: 390,   // Y at X=548
-    centerEnd: 390,     // Y at X=1119
-    rightSectionStart: 390,
-    rightEdge: 242      // Y at X=1564
+    leftEdge: 320,      // Y at X=105 (Gold ends quickly on sides)
+    leftSectionEnd: 420, // Y at X=548
+    centerStart: 520,   // Y at X=548 (4 rows of Gold in center)
+    centerEnd: 520,     // Y at X=1119
+    rightSectionStart: 420,
+    rightEdge: 340      // Y at X=1564
 };
 
-// Silver/Bronze boundary (Blue lines)
-// Left: (105,348)→(548,431), Right: (1564,355)→(1119,430), Center vertical ~430-685
+// Silver/Bronze boundary (BLUE to GREEN - Silver section)
+// Follows the blue line user drew
 const SILVER_BOUNDARY = {
-    leftEdge: 348,      // Y at X=105
-    leftSectionEnd: 431, // Y at X=548
-    centerStart: 540,   // Y at X=548 (center horizontal from purple line at 522 + offset)
-    centerEnd: 540,     // Y at X=1119
-    rightSectionStart: 430,
-    rightEdge: 355      // Y at X=1564
+    leftEdge: 620,      // Y at X=105 (Silver section on left side)
+    leftSectionEnd: 740, // Y at X=548
+    centerStart: 740,   // Y at X=548 (Silver section in center)
+    centerEnd: 900,     // Y at X=1119
+    rightSectionStart: 740,
+    rightEdge: 620      // Y at X=1564
 };
 
-// Bronze/Normal boundary (Teal lines)
-// Left: (104,609)→(547,692), Right: (1564,610)→(1119,685), Center: Y≈838
+// Bronze/Normal boundary (GREEN line the user drew - Bronze section)
+// Follows the green/teal line user drew
 const BRONZE_BOUNDARY = {
-    leftEdge: 609,      // Y at X=105
-    leftSectionEnd: 692, // Y at X=548
-    centerStart: 838,   // Y at X=548
-    centerEnd: 838,     // Y at X=1119
-    rightSectionStart: 685,
-    rightEdge: 610      // Y at X=1564
+    leftEdge: 870,      // Y at X=105 (Bronze ends here on left)
+    leftSectionEnd: 900, // Y at X=548
+    centerStart: 1100,  // Y at X=548 (Bronze section in center)
+    centerEnd: 1100,    // Y at X=1119
+    rightSectionStart: 900,
+    rightEdge: 870      // Y at X=1564 (Bronze ends here on right)
 };
 
-// Normal/Bottom boundary (Black lines)
-// Center: Y≈1107
-const NORMAL_BOUNDARY = {
-    leftEdge: 858,
-    leftSectionEnd: 942,
-    centerStart: 1107,
-    centerEnd: 1107,
-    rightSectionStart: 937,
-    rightEdge: 860
-};
+// Normal tier is everything below Bronze boundary (BLACK line)
 
 // Linear interpolation helper
 const lerp = (x: number, x1: number, y1: number, x2: number, y2: number): number => {
