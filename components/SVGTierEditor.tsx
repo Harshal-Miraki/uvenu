@@ -51,7 +51,23 @@ export default function SVGTierEditor({ eventId, onSave }: SVGTierEditorProps) {
         });
     }, [eventId]);
 
-    // Count seats per tier based on current boundaries
+    // Section boundaries for section-aware tier detection (matching SVGSeatMap)
+    const SECTION_X_BOUNDARIES = {
+        leftEnd: 548,
+        rightStart: 1119
+    };
+
+    // Calculate Y offset for side sections (matching SVGSeatMap logic)
+    const calculateSideOffset = (x: number, section: 'left' | 'right'): number => {
+        const slopeRate = 0.18;
+        if (section === 'left') {
+            return (SECTION_X_BOUNDARIES.leftEnd - x) * slopeRate;
+        } else {
+            return (x - SECTION_X_BOUNDARIES.rightStart) * slopeRate;
+        }
+    };
+
+    // Count seats per tier based on current boundaries (section-aware)
     const countSeatsPerTier = useCallback((b: TierBoundaries) => {
         if (!containerRef.current) return;
 
@@ -68,12 +84,21 @@ export default function SVGTierEditor({ eventId, onSave }: SVGTierEditorProps) {
         };
 
         rects.forEach(rect => {
+            const x = parseFloat(rect.getAttribute('x') || '0');
             const y = parseFloat(rect.getAttribute('y') || '0');
 
-            if (y < b.premium) counts.premium++;
-            else if (y < b.gold) counts.gold++;
-            else if (y < b.silver) counts.silver++;
-            else if (y < b.bronze) counts.bronze++;
+            // Apply section-aware offset
+            let adjustedY = y;
+            if (x < SECTION_X_BOUNDARIES.leftEnd) {
+                adjustedY = y - calculateSideOffset(x, 'left');
+            } else if (x > SECTION_X_BOUNDARIES.rightStart) {
+                adjustedY = y - calculateSideOffset(x, 'right');
+            }
+
+            if (adjustedY < b.premium) counts.premium++;
+            else if (adjustedY < b.gold) counts.gold++;
+            else if (adjustedY < b.silver) counts.silver++;
+            else if (adjustedY < b.bronze) counts.bronze++;
             else counts.normal++;
         });
 
