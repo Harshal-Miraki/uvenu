@@ -84,12 +84,14 @@ export function LayoutCanvas({
     [zoom, setZoom]
   );
 
+  const CANVAS_MARGIN = 40;
+
   const canvasToLocal = (clientX: number, clientY: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     return {
-      x: (clientX - rect.left - panOffset.x) / zoom,
-      y: (clientY - rect.top - panOffset.y) / zoom,
+      x: (clientX - rect.left - panOffset.x - CANVAS_MARGIN) / zoom,
+      y: (clientY - rect.top - panOffset.y - CANVAS_MARGIN) / zoom,
     };
   };
 
@@ -467,7 +469,7 @@ export function LayoutCanvas({
           position: "relative",
           backgroundColor: layout.canvas.backgroundColor,
           boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          margin: "40px",
+          margin: `${CANVAS_MARGIN}px`,
         }}
       >
         {/* Grid */}

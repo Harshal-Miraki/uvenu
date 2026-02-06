@@ -7,6 +7,7 @@ import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { Booking } from "@/types";
 import { DollarSign, Ticket, Calendar, TrendingUp, MapPin, Settings, LayoutGrid, Plus, ClipboardList, Layers } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -83,22 +84,13 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <Link href="/admin/layouts" className="group">
                         <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
                             <CardContent className="p-4 text-center">
                                 <Layers className="w-8 h-8 mx-auto mb-2 text-indigo-500 group-hover:scale-110 transition-transform" />
                                 <div className="text-sm font-medium text-gray-900">Venue Layouts</div>
-                                <p className="text-xs text-gray-500">Build seat maps</p>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                    <Link href="/admin/seatmap-editor" className="group">
-                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
-                            <CardContent className="p-4 text-center">
-                                <MapPin className="w-8 h-8 mx-auto mb-2 text-red-500 group-hover:scale-110 transition-transform" />
-                                <div className="text-sm font-medium text-gray-900">Seat Map Editor</div>
-                                <p className="text-xs text-gray-500">Edit tier boundaries</p>
+                                <p className="text-xs text-gray-500">Manage all layouts</p>
                             </CardContent>
                         </Card>
                     </Link>
@@ -107,16 +99,7 @@ export default function AdminDashboard() {
                             <CardContent className="p-4 text-center">
                                 <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-500 group-hover:scale-110 transition-transform" />
                                 <div className="text-sm font-medium text-gray-900">Manage Pricing</div>
-                                <p className="text-xs text-gray-500">Set tier prices</p>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                    <Link href="/admin/manage-layout" className="group">
-                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
-                            <CardContent className="p-4 text-center">
-                                <LayoutGrid className="w-8 h-8 mx-auto mb-2 text-purple-500 group-hover:scale-110 transition-transform" />
-                                <div className="text-sm font-medium text-gray-900">Tier Layout</div>
-                                <p className="text-xs text-gray-500">Configure layout</p>
+                                <p className="text-xs text-gray-500">Set zone prices</p>
                             </CardContent>
                         </Card>
                     </Link>
@@ -139,6 +122,69 @@ export default function AdminDashboard() {
                         </Card>
                     </Link>
                 </div>
+
+                {/* Active Events & Layouts */}
+                <Card className="bg-white border-charcoal-500 shadow-sm mb-8">
+                    <CardHeader>
+                        <CardTitle>Active Events & Layouts</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left text-gray-500">
+                                <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                                    <tr>
+                                        <th className="px-6 py-3">Event</th>
+                                        <th className="px-6 py-3">Date</th>
+                                        <th className="px-6 py-3">Venue</th>
+                                        <th className="px-6 py-3">Assigned Layout</th>
+                                        <th className="px-6 py-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {events.map((event) => (
+                                        <tr key={event.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900">{event.title}</td>
+                                            <td className="px-6 py-4">{new Date(event.date).toLocaleDateString()}</td>
+                                            <td className="px-6 py-4">{event.venue}</td>
+                                            <td className="px-6 py-4">
+                                                {event.layoutId ? (
+                                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
+                                                        Active
+                                                    </span>
+                                                ) : (
+                                                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+                                                        None
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {event.layoutId ? (
+                                                    <Link href={`/admin/layouts/builder/${event.layoutId}`}>
+                                                        <Button size="sm" variant="outline" className="h-8">
+                                                            <LayoutGrid className="w-3 h-3 mr-2" />
+                                                            Edit Layout
+                                                        </Button>
+                                                    </Link>
+                                                ) : (
+                                                    <Link href="/admin/layouts">
+                                                        <Button size="sm" variant="ghost" className="h-8 text-gold-600">
+                                                            Assign Layout
+                                                        </Button>
+                                                    </Link>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {events.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="text-center py-6 text-gray-400">No active events found</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <Card className="bg-white border-charcoal-500 shadow-sm">
                     <CardHeader>
