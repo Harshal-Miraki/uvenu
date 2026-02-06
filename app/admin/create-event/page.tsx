@@ -4,14 +4,25 @@ import { useStore } from "@/context/StoreContext";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { storage } from "@/lib/storage";
+import { layoutStorage } from "@/lib/layoutStorage";
 import { useRouter } from "next/navigation";
 import { Event } from "@/types";
+import { VenueLayout } from "@/types/layout";
 
 export default function CreateEventPage() {
     const { refreshData, events } = useStore();
     const router = useRouter();
+
+    const [layouts, setLayouts] = useState<VenueLayout[]>([]);
+    const [useCustomLayout, setUseCustomLayout] = useState(false);
+
+    useEffect(() => {
+        layoutStorage.getLayouts().then((fetched) =>
+            setLayouts(fetched.filter((l) => l.status === "active"))
+        );
+    }, []);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -26,7 +37,8 @@ export default function CreateEventPage() {
         vipSeats: 0,
         premiumSeats: 0,
         standardSeats: 0,
-        tierLayout: 'ascending' as 'ascending' | 'descending'
+        tierLayout: 'ascending' as 'ascending' | 'descending',
+        layoutId: '',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -56,6 +68,7 @@ export default function CreateEventPage() {
                 Standard: Number(formData.standardPrice)
             },
             tierLayout: formData.tierLayout,
+            layoutId: useCustomLayout ? formData.layoutId : undefined,
             isEarlyBird: false,
             isLastMinute: false,
             discountPercentage: 0
@@ -117,6 +130,44 @@ export default function CreateEventPage() {
                                     <option value="descending">Premium at Back (Platinum: Rows K-L)</option>
                                 </select>
                                 <p className="text-xs text-gray-500">Choose where premium seats (Platinum/Gold) are located</p>
+                            </div>
+
+                            {/* Custom Layout Toggle */}
+                            <div className="border-t border-gray-200 pt-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <input
+                                        type="checkbox"
+                                        id="useCustomLayout"
+                                        checked={useCustomLayout}
+                                        onChange={(e) => setUseCustomLayout(e.target.checked)}
+                                        className="rounded accent-gold-500"
+                                    />
+                                    <label htmlFor="useCustomLayout" className="text-sm font-medium text-gray-700">
+                                        Use Custom Seat Layout
+                                    </label>
+                                </div>
+                                {useCustomLayout && (
+                                    <div className="mb-4 p-4 bg-gold-50 border border-gold-200 rounded-lg">
+                                        <label className="text-sm font-medium text-gray-700 block mb-2">Select Layout</label>
+                                        <select
+                                            value={formData.layoutId}
+                                            onChange={e => setFormData({ ...formData, layoutId: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold-500 bg-white text-gray-900"
+                                        >
+                                            <option value="">Choose a layout...</option>
+                                            {layouts.map(layout => (
+                                                <option key={layout.id} value={layout.id}>
+                                                    {layout.name} ({layout.totalCapacity} seats)
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {layouts.length === 0 && (
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                No published layouts available. Create and publish a layout first.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="border-t border-gray-200 pt-6">

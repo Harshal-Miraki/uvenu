@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Calendar, Clock, MapPin, ChevronLeft, ShoppingCart, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { TierConfig, SeatTier } from "@/types";
+import { VenueLayout, SeatAvailability } from "@/types/layout";
+import { layoutStorage } from "@/lib/layoutStorage";
 import SVGSeatMap, { SVG_TIER_CONFIG } from "@/components/SVGSeatMap";
+import { SeatMapViewer } from "@/components/customer/SeatSelection/SeatMapViewer";
 
 // Selected seat with tier info
 interface SelectedSeatInfo {
@@ -25,8 +28,19 @@ export default function EventDetailsPage() {
     const [selectedSeats, setSelectedSeats] = useState<SelectedSeatInfo[]>([]);
     const [tierConfig] = useState<TierConfig[]>(SVG_TIER_CONFIG);
     const [soldSeats] = useState<string[]>([]); // Could be loaded from API
+    const [customLayout, setCustomLayout] = useState<VenueLayout | null>(null);
+    const [customSelectedSeats, setCustomSelectedSeats] = useState<SeatAvailability[]>([]);
 
     const event = events.find(e => e.id === id);
+
+    // Load custom layout if event uses one
+    useEffect(() => {
+        if (event?.layoutId) {
+            layoutStorage.getLayout(event.layoutId).then((layout) => {
+                if (layout) setCustomLayout(layout);
+            });
+        }
+    }, [event?.layoutId]);
 
     const discountPercentage = (event?.isEarlyBird || event?.isLastMinute) ? event.discountPercentage : 0;
 
@@ -70,6 +84,36 @@ export default function EventDetailsPage() {
 
     // Calculate total
     const totalPrice = selectedSeats.reduce((sum, seat) => sum + getSeatPrice(seat.tier), 0);
+
+    // Handle custom layout seat selection
+    const handleCustomSeatsSelected = (seats: SeatAvailability[]) => {
+        setCustomSelectedSeats(seats);
+    };
+
+    const handleAddToCartCustom = () => {
+        if (customSelectedSeats.length === 0 || !event) return;
+
+        const seatsForCart = customSelectedSeats.map(seat => ({
+            id: seat.seatId,
+            row: seat.row,
+            number: parseInt(seat.number) || 1,
+            section: 'center' as const,
+            tier: 'premium' as SeatTier,
+            status: 'selected' as const
+        }));
+
+        const totalPrice = customSelectedSeats.reduce((sum, s) => sum + s.price, 0);
+
+        addToCart({
+            eventId: event.id,
+            eventTitle: event.title,
+            eventDate: event.date,
+            seats: seatsForCart,
+            totalPrice
+        });
+
+        router.push('/checkout');
+    };
 
     const handleAddToCart = () => {
         if (selectedSeats.length === 0) return;
@@ -134,24 +178,33 @@ export default function EventDetailsPage() {
             <div className="container mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                     {/* Seat Map - Takes more space */}
-                    <div className="xl:col-span-3">
+                    <div className={customLayout ? "xl:col-span-4" : "xl:col-span-3"}>
                         <Card className="bg-white border-gray-200 shadow-sm">
                             <CardContent className="p-6">
                                 <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">{t('eventDetails.selectSeats')}</h2>
-                                <SVGSeatMap
-                                    eventId={event.id}
-                                    tierConfig={tierConfig}
-                                    onSeatSelect={handleSeatSelect}
-                                    selectedSeats={selectedSeats.map(s => s.id)}
-                                    soldSeats={soldSeats}
-                                    discountPercentage={discountPercentage}
-                                />
+                                {customLayout ? (
+                                    <SeatMapViewer
+                                        layout={customLayout}
+                                        bookedSeatIds={soldSeats}
+                                        onSeatsSelected={handleCustomSeatsSelected}
+                                        currency="QAR"
+                                    />
+                                ) : (
+                                    <SVGSeatMap
+                                        eventId={event.id}
+                                        tierConfig={tierConfig}
+                                        onSeatSelect={handleSeatSelect}
+                                        selectedSeats={selectedSeats.map(s => s.id)}
+                                        soldSeats={soldSeats}
+                                        discountPercentage={discountPercentage}
+                                    />
+                                )}
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Selection Summary - Sidebar */}
-                    <div className="xl:col-span-1">
+                    {/* Selection Summary - Sidebar (hidden when using custom layout as it has its own) */}
+                    <div className={`xl:col-span-1 ${customLayout ? 'hidden' : ''}`}>
                         <Card className="bg-white border-gray-200 sticky top-24 shadow-sm">
                             <CardContent className="p-6">
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">{t('eventDetails.yourSelection')}</h3>

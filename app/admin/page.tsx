@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { Booking } from "@/types";
-import { DollarSign, Ticket, Calendar, TrendingUp, MapPin, Settings, LayoutGrid, Plus, ClipboardList } from "lucide-react";
+import { DollarSign, Ticket, Calendar, TrendingUp, MapPin, Settings, LayoutGrid, Plus, ClipboardList, Layers } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
@@ -83,7 +83,16 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+                    <Link href="/admin/layouts" className="group">
+                        <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
+                            <CardContent className="p-4 text-center">
+                                <Layers className="w-8 h-8 mx-auto mb-2 text-indigo-500 group-hover:scale-110 transition-transform" />
+                                <div className="text-sm font-medium text-gray-900">Venue Layouts</div>
+                                <p className="text-xs text-gray-500">Build seat maps</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
                     <Link href="/admin/seatmap-editor" className="group">
                         <Card className="bg-white border-gray-200 shadow-sm hover:border-gold-400 hover:shadow-md transition-all cursor-pointer h-full">
                             <CardContent className="p-4 text-center">

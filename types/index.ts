@@ -70,6 +70,9 @@ export interface Event {
     tierPricing?: TierConfig[]; // Tier configuration
     tierLayout?: TierLayout;    // 'ascending' = premium front, 'descending' = premium back
 
+    // Custom layout builder integration
+    layoutId?: string;           // FK to VenueLayout, if using custom layout
+
     // Dynamic Pricing Factors (simplified)
     isEarlyBird: boolean;
     isLastMinute: boolean;
